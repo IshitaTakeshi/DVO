@@ -1,8 +1,40 @@
+from skimage.io import imread
 import numpy as np
+
+
+n_pose_parameters = 6
+
+
+class CameraParameters(object):
+    def __init__(self, fx, fy, s, ox, oy):
+        self.parameters = np.array([
+            [fx, s, ox],
+            [0, fy, oy]
+        ])
+
+        self.focal_length = np.array([fx, fy])
+        self.offset = np.array([ox, oy])
+        self.skew = s
+
+
+def transform(g, P):
+    """
+
+    .. math::
+        g = \\begin{bmatrix}
+            R & T \\\\
+            \\mathbf{0}^{\\top} & 1 \\\\
+        \\end{bmatrix}
+
+    :math:`RP + T`
+    """
+    return np.dot(g[0:3, 0:3], P) + g[0:3, 3]
 
 
 def projection(camera_parameters, G):
     """
+    :math:`\pi(G)` in the paper
+
     .. math::
         \\pi(G) = \\begin{bmatrix}
             \\frac{G_1 \\cdot f_x}{G_3} - o_x &
@@ -13,11 +45,13 @@ def projection(camera_parameters, G):
     """
     focal_length = camera_parameters.focal_length
     offset = camera_parameters.offset
-    return (G[0:2] * focal_length + offset) / G[3]
+    return (G[0:2] * focal_length + offset) / G[2]
 
 
 def inverse_projection(camera_parameters, p, depth):
     """
+    :math:`S(x)` in the paper
+
     .. math::
         S(\\mathbf{x}) = \\begin{bmatrix}
             \\frac{(x + o_x) \\cdot h(\\mathbf{x})}{f_x} &
@@ -55,7 +89,7 @@ def jacobian_projection(camera_parameters, G):
     """
 
     fx, fy = camera_parameters.focal_length
-    J_G = np.array([
+    JG = np.array([
         [fx, 0, -G[0] * fx / G[2]],
         [0, fy, -G[1] * fy / G[2]]
     ])
@@ -84,6 +118,11 @@ def jacobian_3dpoint(P):
             \cdot
             vec(g) \\\\
         \\end{align}
+
+    where
+
+    .. math::
+        P = [x, y, z]^{\\top}
 
     """
 
@@ -179,7 +218,7 @@ def jacobian_rigid_motion(g):
     # right side
     # MR.shape = (12, 3)
     MR = np.vstack([
-        np.zeros(12, 3),
+        np.zeros((9, 3)),
         np.eye(3)
     ])
 
@@ -189,48 +228,87 @@ def jacobian_rigid_motion(g):
 
 class ImageGradient(object):
     def __init__(self, image):
-        dy = image - np.roll(image, -1, axis=1)
+        self.gradient = self.calc_gradient(image)
+
+    def calc_gradient(self, image):
         dx = image - np.roll(image, -1, axis=0)
-        self.gradient = np.array([dx, dy])
+        dy = image - np.roll(image, -1, axis=1)
+        gradient = np.array([dx, dy])
+        gradient = np.swapaxes(gradient, 0, 2)
+        gradient = np.swapaxes(gradient, 0, 1)
+        print("gradient.shape", gradient.shape)
+        return gradient
 
     def __call__(self, index):
         x, y = index
-        return self.gradient([x, y])
+        return self.gradient[y, x]
+
 
 
 class VisualOdometry(object):
     def __init__(self, camera_parameters,
-                 reference_image, current_image):
+                 reference_image, reference_depth,
+                 current_image, current_depth):
+
+        self.reference_image = reference_image
+        self.reference_depth = reference_depth
+        self.current_image = current_image
+        self.current_depth = current_depth
+
         self.camera_parameters = camera_parameters
         self.image_gradient = ImageGradient(reference_image)
         self.pixel_coordinates =\
-            self.compute_pixel_coordinates(reference_image)
+            self.compute_pixel_coordinates(reference_image.shape)
 
-    def pixel_coordinates(self):
-        pixel_coordinates = np.meshgrid(
-            np.arange(height),
-            np.arange(width)
-        )
-        return np.array(pixel_coordinates).swapaxes(0, 2)
+    def compute_pixel_coordinates(self, image_shape):
+        height, width = image_shape[0:2]
+        pixel_coordinates = np.array([(x, y) for x in range(width) for y in range(height)])
+        # pixel_coordinates = np.meshgrid(
+        #     np.arange(height),
+        #     np.arange(width)
+        # )
+        # pixel_coordinates = np.array(pixel_coordinates)
+        return pixel_coordinates
 
     def compute_jacobian(self, p, g):
-        G = inverse_projection(camera_parameters, p, depth)
+        x, y = p
+        # print(x, y)
+        # print(self.reference_depth.shape)
+        depth = self.reference_depth[y, x]
+        S = inverse_projection(self.camera_parameters, p, depth)
+
+        G = transform(g, S)
+
         M = jacobian_rigid_motion(g)
         U = jacobian_3dpoint(G)
-        V = jacobian_projection(camera_parameters, p)
+        V = jacobian_projection(self.camera_parameters, G)
         W = self.image_gradient(p)
         return W.dot(V).dot(U).dot(M)
 
     def estimate(self, g):
+        J = []
         for p in self.pixel_coordinates:
-            self.compute_jacobian(p, g)
-        return
+            J.append(self.compute_jacobian(p, g))
+        J = np.vstack(J)
+        return J
 
-    def motion_estimation(I2, I1):
-        g = self.current_estimate()  # t0
-        y = I1 - I0
+    def motion_estimation(self, n_coarse_to_fine=5,
+                          initial_estimate=None):
+        if initial_estimate is None:
+            initial_estimate = np.zeros(n_pose_parameters)
+
+        g = np.eye(4)
+        xi = initial_estimate  # t0
+        y = self.current_image - self.reference_image
         y = y.flatten()
+        print("y: ", y)
+        print("np.sum(y): ", np.sum(y))
         for i in range(n_coarse_to_fine):
-            J = self.estimate()
-            xi = np.linalg.lstsq(J, -y)
-        return xi
+            J = self.estimate(g)
+            xi, residuals, rank, singular = np.linalg.lstsq(J, -y)
+
+            print("J.shape: {} y.shape: {}".format(J.shape, y.shape))
+            print("xi: ", xi)
+            print("residuals: ", residuals)
+            g = np.dot(g, hat6(xi))
+        return g
