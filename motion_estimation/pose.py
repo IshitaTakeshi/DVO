@@ -55,11 +55,11 @@ def rotation_to_quaternion(Q):
 
     argmax = np.argmax(diagonal)
 
-    if argmax == 0:  # Q[0, 0] is the larggest diagonal entry
+    if argmax == 0:  # Q[0, 0] is the largest diagonal entry
         return transform_if_xx_is_largest()
-    if argmax == 1:  # Q[1, 1] is the larggest diagonal entry
+    if argmax == 1:  # Q[1, 1] is the largest diagonal entry
         return transform_if_yy_is_largest()
-    if argmax == 2:  # Q[2, 2] is the larggest diagonal entry
+    if argmax == 2:  # Q[2, 2] is the largest diagonal entry
         return transform_if_zz_is_largest()
 
 
