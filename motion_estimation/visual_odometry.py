@@ -5,9 +5,22 @@ import numpy as np
 n_pose_parameters = 6
 
 
+def to_tuple_if_scalar(value):
+    """
+    If a scalar value is given, duplicate it and return as a 2 element tuple.
+    """
+    if isinstance(value, float) or isinstance(value, int):
+        return (value, value)
+    return value
+
+
 class CameraParameters(object):
-    def __init__(self, fx, fy, s, ox, oy):
-        self.parameters = np.array([
+    def __init__(self, focal_length, offset, skew=0):
+        ox, oy = to_tuple_if_scalar(offset)
+        fx, fy = to_tuple_if_scalar(focal_length)
+        s = skew
+
+        self.matrix = np.array([
             [fx, s, ox],
             [0, fy, oy]
         ])
