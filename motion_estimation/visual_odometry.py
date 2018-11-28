@@ -284,7 +284,7 @@ class VisualOdometry(object):
         # pixel_coordinates = np.array(pixel_coordinates)
         return pixel_coordinates
 
-    def compute_jacobian(self, p, g):
+    def compute_jacobian_per_pxel(self, p, g):
         x, y = p
         # print(x, y)
         # print(self.reference_depth.shape)
@@ -299,30 +299,36 @@ class VisualOdometry(object):
         W = self.image_gradient(p)
         return W.dot(V).dot(U).dot(M)
 
-    def estimate(self, g):
+    def compute_jacobian(self, g):
         J = []
         for p in self.pixel_coordinates:
-            J.append(self.compute_jacobian(p, g))
+            J.append(self.compute_jacobian_per_pxel(p, g))
         J = np.vstack(J)
         return J
 
-    def motion_estimation(self, n_coarse_to_fine=5,
-                          initial_estimate=None):
+    def estimate_motion(self, n_coarse_to_fine=5,
+                        initial_estimate=None):
         if initial_estimate is None:
             initial_estimate = np.zeros(n_pose_parameters)
 
         g = np.eye(4)
         xi = initial_estimate  # t0
         y = self.current_image - self.reference_image
-        y = y.flatten()
         print("y: ", y)
         print("np.sum(y): ", np.sum(y))
         for i in range(n_coarse_to_fine):
-            J = self.estimate(g)
-            xi, residuals, rank, singular = np.linalg.lstsq(J, -y)
+            self.estimate_in_layer(
+                self.current_image,
+                self.reference_image,
+                g
+            )
+        return g
 
-            print("J.shape: {} y.shape: {}".format(J.shape, y.shape))
-            print("xi: ", xi)
-            print("residuals: ", residuals)
-            g = np.dot(g, hat6(xi))
+    def estimate_in_layer(self, I0, I1, g):
+        y = I1 - I0
+        y = y.flatten()
+
+        J = self.compute_jacobian(g)
+        xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
+        g = np.dot(g, hat6(xi))
         return g
