@@ -56,9 +56,10 @@ def projection(camera_parameters, G):
         \\end{bmatrix}
 
     """
-    focal_length = camera_parameters.focal_length
-    offset = camera_parameters.offset
-    return (G[0:2] * focal_length + offset) / G[2]
+    Z = np.dot(camera_parameters.matrix, G)
+    return Z[0:2] / Z[2]
+
+# return (G[0:2] * focal_length + offset) / G[2]
 
 
 def inverse_projection(camera_parameters, p, depth):
