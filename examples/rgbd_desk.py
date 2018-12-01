@@ -18,42 +18,52 @@ def is_comment(row):
 
 
 def load_groundtruth():
-
-    with open(path, "r") as f:
-        # read lines with ignoring comments
-        reader = csv.reader(
-            filter(lambda row: not is_comment(row), f),
-            delimiter=' '
-        )
-
-        timestamps = []
-        poses = []
-        for row in reader:
-            timestamps.append(row[0])
-            poses.append([float(v) for v in row[1:]])
-        poses = np.array(poses)
-
+    path = str(Path(dataset_root, "groundtruth.txt"))
+    data = np.loadtxt(path)
+    timestamps = data[:, 0]
+    poses = data[:, 1:]
     return timestamps, poses
 
 
-def list_images():
-    path = Path(dataset_root, "rgb")
-    return [p.name for p in path.glob("*.png")]
+
+class Dataset(object):
+    def __init__(self):
+        self.rgb_root = Path(dataset_root, "rgb")
+        self.depth_root = Path(dataset_root, "depth")
+        self.timestamps = self.load_timestamps(self.rgb_root)
+
+    def filename_to_timestamp(self, filename):
+        return float(filename.replace(".png", ""))
+
+    def timestamp_to_filename(self, timestamp):
+        return str(timestamp) + ".png"
+
+    def load_timestamps(self, directory):
+        filenames = [p.name for p in directory.glob("*.png")]
+        timestamps = [self.filename_to_timestamp(f) for f in filenames]
+        return np.array(np.sort(timestamps))
+
+    def search_nearest_timestamp(self, timestamp):
+        index = np.searchsorted(self.timestamps, timestamp)
+        return self.timestamps[index]
+
+    def search_nearest(self, timestamp):
+        nearest = self.search_nearest_timestamp(timestamp)
+        filename = self.timestamp_to_filename(nearest)
+        rgb_path = Path(self.rgb_root, filename)
+        depth_path = Path(self.depth_root, filename)
+        return str(rgb_path), str(depth_path)
 
 
-def load_rgb_image(filename):
-    print(filename)
-    path = Path(dataset_root, "rgb", filename)
-    image = imread(str(path))
-    print(image)
+
+def main():
+    timestamps, poses = load_groundtruth()
+    dataset = Dataset()
+
+    query = timestamps[int(len(timestamps)/2)]
+    print("Query: ", query)
+    rgb_path, depth_path = dataset.search_nearest(query)
+    print(rgb_path, depth_path)
 
 
-timestamps, poses = load_groundtruth()
-
-load_rgb_image(timestamps[0])
-filenames = list_images()
-for filename in filenames:
-    filename = filename.replace(".png", "")
-    print(filename)
-    print(timestamps)
-    print(filename in timestamps)
+main()
