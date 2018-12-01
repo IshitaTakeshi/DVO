@@ -79,7 +79,7 @@ def inverse_projection(camera_parameters, p, depth):
     return np.concatenate((s, [depth]))
 
 
-def jacobian_projection(camera_parameters, G):
+def jacobian_projection(camera_parameters, G, epsilon=1e-4):
     """
     Jacobian of the projection function :math:`\pi`
 
@@ -103,11 +103,14 @@ def jacobian_projection(camera_parameters, G):
     """
 
     fx, fy = camera_parameters.focal_length
+
+    Z = epsilon if G[2] == 0 else G[2]
+
     JG = np.array([
-        [fx, 0, -G[0] * fx / G[2]],
-        [0, fy, -G[1] * fy / G[2]]
+        [fx, 0, -G[0] * fx / Z],
+        [0, fy, -G[1] * fy / Z]
     ])
-    JG = JG / G[2]
+    JG = JG / Z
     return JG
 
 
