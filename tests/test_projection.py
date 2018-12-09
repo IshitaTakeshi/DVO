@@ -7,18 +7,34 @@ from numpy.testing import assert_array_equal
 import numpy as np
 
 from motion_estimation.visual_odometry import (CameraParameters,
-        inverse_projection, transform, jacobian_3dpoint, jacobian_rigid_motion)
+        inverse_projection, transform, jacobian_3dpoints,
+        jacobian_rigid_motion)
 
 
 def test_inverse_projection():
-    camera_parameters = CameraParameters(10, [2, 3])
-    S = inverse_projection(
-        camera_parameters,
-        np.array([5, 2]),
-        3
-    )
+    camera_parameters = CameraParameters(focal_length=[2, 2], offset=[1, -2])
+    P = np.array([
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [1, 0],
+        [1, 1],
+        [1, 2],
+    ])
+    depth = np.array([1, 2, 0, 1, 2, 3])
 
-    assert_array_equal(S, np.array([2.1, 1.5, 3]))
+    S = inverse_projection(camera_parameters, P, depth)
+
+    GT = np.array([
+        [(0+1)*1 / 2, (0-2)*1 / 2, 1],
+        [(0+1)*2 / 2, (1-2)*2 / 2, 2],
+        [(0+1)*0 / 2, (2-2)*0 / 2, 0],
+        [(1+1)*1 / 2, (0-2)*1 / 2, 1],
+        [(1+1)*2 / 2, (1-2)*2 / 2, 2],
+        [(1+1)*3 / 2, (2-2)*3 / 2, 3]
+    ])
+
+    assert_array_equal(S, GT)
 
 
 def test_transform():
@@ -32,14 +48,21 @@ def test_transform():
     assert_array_equal(transform(g, P), np.array([-2, -2, -1]))
 
 
-def test_jacobian_3dpoint():
+def test_jacobian_3dpoints():
     x, y, z = 1, 2, 3
-    GT = [
-        [x, 0, 0, y, 0, 0, z, 0, 0, 1, 0, 0],
-        [0, x, 0, 0, y, 0, 0, z, 0, 0, 1, 0],
-        [0, 0, x, 0, 0, y, 0, 0, z, 0, 0, 1]
-    ]
-    assert_array_equal(jacobian_3dpoint([x, y, z]), GT)
+    GT = np.array([
+        [[x, 0, 0, y, 0, 0, z, 0, 0, 1, 0, 0],
+         [0, x, 0, 0, y, 0, 0, z, 0, 0, 1, 0],
+         [0, 0, x, 0, 0, y, 0, 0, z, 0, 0, 1]],
+        [[x, 0, 0, y, 0, 0, z, 0, 0, 1, 0, 0],
+         [0, x, 0, 0, y, 0, 0, z, 0, 0, 1, 0],
+         [0, 0, x, 0, 0, y, 0, 0, z, 0, 0, 1]]
+    ])
+    P = np.array([
+        [x, y, z],
+        [x, y, z]
+    ])
+    assert_array_equal(jacobian_3dpoints(P), GT)
 
 
 def test_jacobian_rigid_motion():
@@ -68,5 +91,5 @@ def test_jacobian_rigid_motion():
 
 test_inverse_projection()
 test_transform()
-test_jacobian_3dpoint()
+test_jacobian_3dpoints()
 test_jacobian_rigid_motion()
