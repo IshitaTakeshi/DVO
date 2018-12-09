@@ -314,24 +314,23 @@ class VisualOdometry(object):
         if initial_estimate is None:
             initial_estimate = np.zeros(n_pose_parameters)
 
-        g = np.eye(4)
         xi = initial_estimate  # t0
         y = self.current_image - self.reference_image
         print("y: ", y)
         print("np.sum(y): ", np.sum(y))
         for i in range(n_coarse_to_fine):
-            self.estimate_in_layer(
+            xi = self.estimate_in_layer(
                 self.current_image,
                 self.reference_image,
-                g
+                xi
             )
-        return g
+        return xi
 
-    def estimate_in_layer(self, I0, I1, g):
+    @profile
+    def estimate_in_layer(self, I0, I1, xi):
         y = I1 - I0
         y = y.flatten()
 
-        J = self.compute_jacobian(g)
+        J = self.compute_jacobian(hat6(xi))
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
-        g = np.dot(g, hat6(xi))
-        return g
+        return xi
