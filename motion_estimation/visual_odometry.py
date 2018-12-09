@@ -73,8 +73,10 @@ def inverse_projection(camera_parameters, P, depth):
             h(\\mathbf{x})
         \\end{bmatrix}
     """
+
     offset = camera_parameters.offset
     focal_length = camera_parameters.focal_length
+
     P = P + offset
     P = (P.T * depth).T
     P = P / focal_length
@@ -82,27 +84,6 @@ def inverse_projection(camera_parameters, P, depth):
 
 
 def jacobian_projection(camera_parameters, G, epsilon=1e-4):
-    """
-    Jacobian of the projection function :math:`\pi`
-
-    .. math::
-        \\begin{align}
-            \\frac{\\partial \\pi(G)}{\\partial G}
-            &= \\begin{bmatrix}
-                \\frac{\\partial \\pi_{x}}{G_{1}} &
-                \\frac{\\partial \\pi_{x}}{G_{2}} &
-                \\frac{\\partial \\pi_{x}}{G_{3}} \\\\
-                \\frac{\\partial \\pi_{y}}{G_{1}} &
-                \\frac{\\partial \\pi_{y}}{G_{2}} &
-                \\frac{\\partial \\pi_{y}}{G_{3}}
-            \\end{bmatrix} \\\\
-            &= \\begin{bmatrix}
-                \\frac{f_{x}}{G_{3}} & 0 & -\\frac{f_{x}}{G_{3}^2} \\\\
-                0 & \\frac{f_{y}}{G_{3}} & -\\frac{f_{y}}{G_{3}^2}
-            \\end{bmatrix}
-        \\end{align}
-
-    """
 
     fx, fy = camera_parameters.focal_length
     s = camera_parameters.skew
@@ -117,7 +98,9 @@ def jacobian_projection(camera_parameters, G, epsilon=1e-4):
     return JG
 
 
-def jacobian_3dpoint(P):
+
+# @profile
+def jacobian_3dpoints(P):
     """
     :math:`g(t)` is represented in the vector form :math:`vec(g)`
     In this case we can calculate the multiplication :math:`RP + T` in
@@ -146,21 +129,42 @@ def jacobian_3dpoint(P):
 
     """
 
-    I = np.eye(3)
-    return np.hstack((I * P[0], I * P[1], I * P[2], I))
-
-
-def jacobian_3dpoints(P):
     n_3dpoints = P.shape[0]
     J = np.zeros((n_3dpoints, 3, 12))
     J[:, 0, 0] = J[:, 1, 1] = J[:, 2, 2] = P[:, 0]
     J[:, 0, 3] = J[:, 1, 4] = J[:, 2, 5] = P[:, 1]
     J[:, 0, 6] = J[:, 1, 7] = J[:, 2, 8] = P[:, 2]
-    J[:, 0, 9] = J[:, 1, 10] = J[:, 2, 11] = 1
+    J[:, [0, 1, 2], [9, 10, 11]] = 1
     return J
 
 
 def jacobian_projections(camera_parameters, G, epsilon=1e-4):
+    """
+    Jacobian of the projection function :math:`\pi`
+
+    .. math::
+        \\begin{align}
+            \\frac{\\partial \\pi(G)}{\\partial G}
+            &= \\begin{bmatrix}
+                \\frac{\\partial \\pi_{x}}{G_{1}} &
+                \\frac{\\partial \\pi_{x}}{G_{2}} &
+                \\frac{\\partial \\pi_{x}}{G_{3}} \\\\
+                \\frac{\\partial \\pi_{y}}{G_{1}} &
+                \\frac{\\partial \\pi_{y}}{G_{2}} &
+                \\frac{\\partial \\pi_{y}}{G_{3}}
+            \\end{bmatrix} \\\\
+            &= \\begin{bmatrix}
+                \\frac{f_{x}}{G_{3}} &
+                s &
+                -\\frac{f_{x} * G_{1} + s * G_{2}}{G_{3}^2}  \\
+                0 &
+                \\frac{f_{y}}{G_{3}} &
+                -\\frac{f_{y} * G_{2}}{G_{3}^2}
+            \\end{bmatrix}
+        \\end{align}
+
+    """
+
     n_image_pixels = G.shape[0]
     J = np.empty((n_image_pixels, 2, 3))
 
@@ -180,7 +184,7 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
     J[:, 1, 0] = 0
     J[:, 1, 1] = fy
     J[:, 1, 2] = -G[:, 1] * fy / Z
-    return J
+    return J / Z.reshape(Z.shape[0], 1, 1)
 
 
 def hat3(v):
