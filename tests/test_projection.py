@@ -3,12 +3,12 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 
 from motion_estimation.visual_odometry import (CameraParameters,
         inverse_projection, transform, jacobian_3dpoints,
-        jacobian_rigid_motion)
+        jacobian_rigid_motion, jacobian_projections)
 
 
 def test_inverse_projection():
@@ -65,6 +65,28 @@ def test_jacobian_3dpoints():
     assert_array_equal(jacobian_3dpoints(P), GT)
 
 
+def test_jacobian_projections():
+    GS = np.arange(24).reshape(8, 3)
+
+    fx = 1.2
+    fy = 1.0
+    s = 0.8
+
+    camera_parameters = CameraParameters(
+        focal_length=[fx, fy],
+        offset=[0, 0],
+        skew=s
+    )
+
+    JS = jacobian_projections(camera_parameters, GS)
+    for J, G in zip(JS, GS):
+        GT = np.array([
+            [fx / G[2], s / G[2], -(fx * G[0] + s * G[1]) / pow(G[2], 2)],
+            [0, fy / G[2], -fy * G[1] / pow(G[2], 2)]
+        ])
+        assert_array_almost_equal(J, GT)
+
+
 def test_jacobian_rigid_motion():
     g = np.array([
          [1, 2, 3, 10],
@@ -93,3 +115,4 @@ test_inverse_projection()
 test_transform()
 test_jacobian_3dpoints()
 test_jacobian_rigid_motion()
+test_jacobian_projections()
