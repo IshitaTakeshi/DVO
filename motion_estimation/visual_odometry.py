@@ -200,7 +200,6 @@ def hat6(v):
     ])
 
 
-# @profile
 def jacobian_rigid_motion(g):
     # TODO specify the shape of g
     """
@@ -328,20 +327,25 @@ class VisualOdometry(object):
         # G.shape = (n_image_pixels, 3)
         G = transform(g, S)
 
-        M = jacobian_rigid_motion(g)  #  (12, n_pose_parameters)
-        U = jacobian_3dpoints(G)  # (n_3dpoints, 3, 12)
-        # (n_3dpoints, 3, n_pose_parameters)
-        J = np.einsum('ij,kli->klj', M, U)
-
-        # (n_3dpoints, 2, 3)
+        # M.shape = (12, n_pose_parameters)
+        M = jacobian_rigid_motion(g)
+        # U.shape = (n_3dpoints, 3, 12)
+        U = jacobian_3dpoints(G)
+        # V.shape = (n_3dpoints, 2, 3)
         V = jacobian_projections(self.camera_parameters, G)
-        # (2, n_pose_parameters)
-        J = np.einsum('ijk,ilj->lk', U, V)
 
-        W = self.image_gradient  # (n_image_pixels, 2)
+        # Equivalent to J = np.einsum('kli,ij->klj', U, M)
+        # J.shape = (n_3dpoints, 3, n_pose_parameters)
+        J = np.tensordot(U, M, axes=(2, 0))
+
+        # Equivalent to J = np.einsum('ilj,ijk->lk', V, J)
+        # J.shape = (2, n_pose_parameters)
+        J = np.tensordot(V, J, axes=((0, 2), (0, 1)))
+
+        # W.shape = (n_image_pixels, 2)
+        W = self.image_gradient
         return np.dot(W, J)  # (n_image_pixels, n_pose_parameters)
 
-    # @profile
     def estimate_motion(self, n_coarse_to_fine=5,
                         initial_estimate=None):
         if initial_estimate is None:
