@@ -83,22 +83,6 @@ def inverse_projection(camera_parameters, P, depth):
     return np.vstack((P.T, depth)).T
 
 
-def jacobian_projection(camera_parameters, G, epsilon=1e-4):
-
-    fx, fy = camera_parameters.focal_length
-    s = camera_parameters.skew
-
-    Z = epsilon if G[2] == 0 else G[2]
-
-    JG = np.array([
-        [fx, s, -(fx*G[0] + s*G[1]) / Z],
-        [0, fy, -G[1] * fy / Z]
-    ])
-    JG = JG / Z
-    return JG
-
-
-
 # @profile
 def jacobian_3dpoints(P):
     """
