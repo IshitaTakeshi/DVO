@@ -217,7 +217,7 @@ def jacobian_rigid_motion(g):
                 -r_{33} &       0 &  r_{13} & 0 & 0 & 0 \\\\
                  r_{23} & -r_{13} &       0 & 0 & 0 & 0 \\\\
                       0 &   t_{3} &  -t_{2} & 1 & 0 & 0 \\\\
-                  t_{3} &       0 &   t_{1} & 0 & 1 & 0 \\\\
+                 -t_{3} &       0 &   t_{1} & 0 & 1 & 0 \\\\
                   t_{2} &  -t_{1} &       0 & 0 & 0 & 1 \\\\
             \\end{bmatrix}
         \\end{align}
@@ -226,10 +226,10 @@ def jacobian_rigid_motion(g):
     # left side of Mg
     # ML.shape = (12, 3)
     ML = np.vstack([
-        hat3(g[:, 0]),
-        hat3(g[:, 1]),
-        hat3(g[:, 2]),
-        hat3(g[:, 3])
+        hat3(-g[:, 0]),
+        hat3(-g[:, 1]),
+        hat3(-g[:, 2]),
+        hat3(-g[:, 3])
     ])
 
     # right side
