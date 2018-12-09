@@ -1,4 +1,3 @@
-from pathlib import Path
 import csv
 import sys
 from pathlib import Path
@@ -6,6 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from skimage.io import imread
+from skimage.color import rgb2gray
 import numpy as np
 
 from motion_estimation import VisualOdometry, CameraParameters
@@ -25,45 +25,67 @@ def load_groundtruth():
     return timestamps, poses
 
 
-
 class Dataset(object):
     def __init__(self):
         self.rgb_root = Path(dataset_root, "rgb")
         self.depth_root = Path(dataset_root, "depth")
-        self.timestamps = self.load_timestamps(self.rgb_root)
+        self.rgb_timestamps = self.load_timestamps(self.rgb_root)
+        self.depth_timestamps = self.load_timestamps(self.depth_root)
 
     def filename_to_timestamp(self, filename):
         return float(filename.replace(".png", ""))
 
     def timestamp_to_filename(self, timestamp):
-        return str(timestamp) + ".png"
+        return "{:.6f}.png".format(timestamp)
 
     def load_timestamps(self, directory):
         filenames = [p.name for p in directory.glob("*.png")]
         timestamps = [self.filename_to_timestamp(f) for f in filenames]
-        return np.array(np.sort(timestamps))
+        return np.sort(timestamps)
 
-    def search_nearest_timestamp(self, timestamp):
-        index = np.searchsorted(self.timestamps, timestamp)
-        return self.timestamps[index]
+    def search_nearest_timestamp(self, timestamps, query):
+        index = np.searchsorted(timestamps, query)
+        return timestamps[index]
 
-    def search_nearest(self, timestamp):
-        nearest = self.search_nearest_timestamp(timestamp)
+    def load_nearest(self, root, timestamps, query):
+        nearest = self.search_nearest_timestamp(timestamps, query)
         filename = self.timestamp_to_filename(nearest)
-        rgb_path = Path(self.rgb_root, filename)
-        depth_path = Path(self.depth_root, filename)
-        return str(rgb_path), str(depth_path)
+        path = str(Path(root, filename))
+        return imread(path)
+
+    def load(self, timestamp):
+        rgb_image = self.load_nearest(
+            self.rgb_root,
+            self.rgb_timestamps,
+            timestamp
+        )
+        depth_image = self.load_nearest(
+            self.depth_root,
+            self.depth_timestamps,
+            timestamp
+        )
+        return rgb_image, depth_image
 
 
-
+@profile
 def main():
     timestamps, poses = load_groundtruth()
+
     dataset = Dataset()
 
-    query = timestamps[int(len(timestamps)/2)]
-    print("Query: ", query)
-    rgb_path, depth_path = dataset.search_nearest(query)
-    print(rgb_path, depth_path)
+    camera_parameters = CameraParameters(10, 0, 0)
 
+    I0, D0 = dataset.load(timestamps[0])
+    I0 = rgb2gray(I0)
+
+    I1, D1 = dataset.load(timestamps[1])
+    I1 = rgb2gray(I1)
+
+    vo = VisualOdometry(camera_parameters, I0, D0, I1, D1)
+
+    # I0, D0 = I1, D1
+
+    motion = vo.estimate_motion(n_coarse_to_fine=1)
+    print(motion)
 
 main()
