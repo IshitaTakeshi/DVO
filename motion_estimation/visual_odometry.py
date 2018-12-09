@@ -41,7 +41,9 @@ def transform(g, P):
 
     :math:`RP + T`
     """
-    return np.dot(g[0:3, 0:3], P) + g[0:3, 3]
+
+    P = np.dot(g[0:3, 0:3], P.T)
+    return P.T + g[0:3, 3]
 
 
 def projection(camera_parameters, G):
@@ -59,10 +61,8 @@ def projection(camera_parameters, G):
     Z = np.dot(camera_parameters.matrix, G)
     return Z[0:2] / Z[2]
 
-# return (G[0:2] * focal_length + offset) / G[2]
 
-
-def inverse_projection(camera_parameters, p, depth):
+def inverse_projection(camera_parameters, P, depth):
     """
     :math:`S(x)` in the paper
 
@@ -75,8 +75,10 @@ def inverse_projection(camera_parameters, p, depth):
     """
     offset = camera_parameters.offset
     focal_length = camera_parameters.focal_length
-    s = (p + offset) * depth / focal_length
-    return np.concatenate((s, [depth]))
+    P = P + offset
+    P = (P.T * depth).T
+    P = P / focal_length
+    return np.vstack((P.T, depth)).T
 
 
 def jacobian_projection(camera_parameters, G, epsilon=1e-4):
@@ -103,11 +105,12 @@ def jacobian_projection(camera_parameters, G, epsilon=1e-4):
     """
 
     fx, fy = camera_parameters.focal_length
+    s = camera_parameters.skew
 
     Z = epsilon if G[2] == 0 else G[2]
 
     JG = np.array([
-        [fx, 0, -G[0] * fx / Z],
+        [fx, s, -(fx*G[0] + s*G[1]) / Z],
         [0, fy, -G[1] * fy / Z]
     ])
     JG = JG / Z
@@ -147,6 +150,39 @@ def jacobian_3dpoint(P):
     return np.hstack((I * P[0], I * P[1], I * P[2], I))
 
 
+def jacobian_3dpoints(P):
+    n_3dpoints = P.shape[0]
+    J = np.zeros((n_3dpoints, 3, 12))
+    J[:, 0, 0] = J[:, 1, 1] = J[:, 2, 2] = P[:, 0]
+    J[:, 0, 3] = J[:, 1, 4] = J[:, 2, 5] = P[:, 1]
+    J[:, 0, 6] = J[:, 1, 7] = J[:, 2, 8] = P[:, 2]
+    J[:, 0, 9] = J[:, 1, 10] = J[:, 2, 11] = 1
+    return J
+
+
+def jacobian_projections(camera_parameters, G, epsilon=1e-4):
+    n_image_pixels = G.shape[0]
+    J = np.empty((n_image_pixels, 2, 3))
+
+    Z = G[:, 2]
+    Z[Z == 0] = epsilon  # avoid zero divisions
+
+    fx, fy = camera_parameters.focal_length
+    s = camera_parameters.skew
+
+    # tile the matrix below `n_image_pixels` times
+    # [[fx, s, -(fx*G[0] + s*G[1]) / Z],
+    #  [0, fy, -G[1] * fy / Z]]
+
+    J[:, 0, 0] = fx
+    J[:, 0, 1] = s
+    J[:, 0, 2] = -(fx * G[:, 0] + s * G[:, 1]) / Z
+    J[:, 1, 0] = 0
+    J[:, 1, 1] = fy
+    J[:, 1, 2] = -G[:, 1] * fy / Z
+    return J
+
+
 def hat3(v):
     return np.array([
         [0, -v[2], v[1]],
@@ -164,6 +200,7 @@ def hat6(v):
     ])
 
 
+# @profile
 def jacobian_rigid_motion(g):
     # TODO specify the shape of g
     """
@@ -243,23 +280,15 @@ def jacobian_rigid_motion(g):
     return np.hstack((ML, MR))
 
 
-class ImageGradient(object):
-    def __init__(self, image):
-        self.gradient = self.calc_gradient(image)
+def calc_image_gradient(image):
+    """
+    Return image gradient `D` of shape (n_image_pixels, 2)
+    that D[index], index = y * width + y stores the gradient at (x, y)
+    """
 
-    def calc_gradient(self, image):
-        dx = image - np.roll(image, -1, axis=0)
-        dy = image - np.roll(image, -1, axis=1)
-        gradient = np.array([dx, dy])
-        gradient = np.swapaxes(gradient, 0, 2)
-        gradient = np.swapaxes(gradient, 0, 1)
-        print("gradient.shape", gradient.shape)
-        return gradient
-
-    def __call__(self, index):
-        x, y = index
-        return self.gradient[y, x]
-
+    dx = image - np.roll(image, -1, axis=0)
+    dy = image - np.roll(image, -1, axis=1)
+    return np.vstack([dx.flatten(), dy.flatten()]).T
 
 
 class VisualOdometry(object):
@@ -273,7 +302,7 @@ class VisualOdometry(object):
         self.current_depth = current_depth
 
         self.camera_parameters = camera_parameters
-        self.image_gradient = ImageGradient(reference_image)
+        self.image_gradient = calc_image_gradient(reference_image)
         self.pixel_coordinates =\
             self.compute_pixel_coordinates(reference_image.shape)
 
@@ -287,28 +316,32 @@ class VisualOdometry(object):
         # pixel_coordinates = np.array(pixel_coordinates)
         return pixel_coordinates
 
-    def compute_jacobian_per_pxel(self, p, g):
-        x, y = p
-        # print(x, y)
-        # print(self.reference_depth.shape)
-        depth = self.reference_depth[y, x]
-        S = inverse_projection(self.camera_parameters, p, depth)
+    # @profile
+    def compute_jacobian(self, g):
+        # S.shape = (n_image_pixels, 3)
+        S = inverse_projection(
+            self.camera_parameters,
+            self.pixel_coordinates,
+            self.reference_depth.flatten()
+        )
 
+        # G.shape = (n_image_pixels, 3)
         G = transform(g, S)
 
-        M = jacobian_rigid_motion(g)
-        U = jacobian_3dpoint(G)
-        V = jacobian_projection(self.camera_parameters, G)
-        W = self.image_gradient(p)
-        return W.dot(V).dot(U).dot(M)
+        M = jacobian_rigid_motion(g)  #  (12, n_pose_parameters)
+        U = jacobian_3dpoints(G)  # (n_3dpoints, 3, 12)
+        # (n_3dpoints, 3, n_pose_parameters)
+        J = np.einsum('ij,kli->klj', M, U)
 
-    def compute_jacobian(self, g):
-        J = []
-        for p in self.pixel_coordinates:
-            J.append(self.compute_jacobian_per_pxel(p, g))
-        J = np.vstack(J)
-        return J
+        # (n_3dpoints, 2, 3)
+        V = jacobian_projections(self.camera_parameters, G)
+        # (2, n_pose_parameters)
+        J = np.einsum('ijk,ilj->lk', U, V)
 
+        W = self.image_gradient  # (n_image_pixels, 2)
+        return np.dot(W, J)  # (n_image_pixels, n_pose_parameters)
+
+    # @profile
     def estimate_motion(self, n_coarse_to_fine=5,
                         initial_estimate=None):
         if initial_estimate is None:
@@ -316,8 +349,7 @@ class VisualOdometry(object):
 
         xi = initial_estimate  # t0
         y = self.current_image - self.reference_image
-        print("y: ", y)
-        print("np.sum(y): ", np.sum(y))
+
         for i in range(n_coarse_to_fine):
             xi = self.estimate_in_layer(
                 self.current_image,
@@ -326,7 +358,7 @@ class VisualOdometry(object):
             )
         return xi
 
-    @profile
+    # @profile
     def estimate_in_layer(self, I0, I1, xi):
         y = I1 - I0
         y = y.flatten()
