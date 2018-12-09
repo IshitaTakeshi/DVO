@@ -306,8 +306,6 @@ class VisualOdometry(object):
 
         self.camera_parameters = camera_parameters
         self.image_gradient = calc_image_gradient(reference_image)
-        self.pixel_coordinates =\
-            self.compute_pixel_coordinates(reference_image.shape)
 
     def compute_pixel_coordinates(self, image_shape):
         height, width = image_shape[0:2]
@@ -320,12 +318,15 @@ class VisualOdometry(object):
         return pixel_coordinates
 
     # @profile
-    def compute_jacobian(self, g):
+    def compute_jacobian(self, depth_map, g):
         # S.shape = (n_image_pixels, 3)
+
+        pixel_coordinates = self.compute_pixel_coordinates(depth_map.shape)
+
         S = inverse_projection(
             self.camera_parameters,
-            self.pixel_coordinates,
-            self.reference_depth.flatten()
+            pixel_coordinates,
+            depth_map.flatten()
         )
 
         # G.shape = (n_image_pixels, 3)
@@ -356,21 +357,22 @@ class VisualOdometry(object):
             initial_estimate = np.zeros(n_pose_parameters)
 
         xi = initial_estimate  # t0
-        y = self.current_image - self.reference_image
 
         for i in range(n_coarse_to_fine):
             xi = self.estimate_in_layer(
-                self.current_image,
                 self.reference_image,
+                self.current_image,
+                self.reference_depth,
                 xi
             )
         return xi
 
     # @profile
-    def estimate_in_layer(self, I0, I1, xi):
+    def estimate_in_layer(self, I0, I1, D0, xi):
         y = I1 - I0
         y = y.flatten()
 
-        J = self.compute_jacobian(hat6(xi))
+        J = self.compute_jacobian(D0, rigid_transformation(xi))
+
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
