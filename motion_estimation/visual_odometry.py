@@ -179,13 +179,29 @@ def hat3(v):
     ])
 
 
-def hat6(v):
-    return np.array([
-        [0, -v[2], v[1], v[3]],
-        [v[2], 0, -v[0], v[4]],
-        [-v[1], v[0], 0, v[5]],
-        [0, 0, 0, 1]
-    ])
+def rodrigues(v):
+    I = np.eye(3)
+    theta = np.linalg.norm(v)
+
+    if np.isclose(theta, 0):
+        return I
+
+    v = v / theta
+    K = hat3(v)
+    cos = np.cos(theta)
+    sin = np.sin(theta)
+    return I * cos + (1 - sin) * np.outer(v, v) + sin * K
+
+
+def rigid_transformation(v):
+    omega, t = v[:3], v[3:]
+    R = rodrigues(omega)
+    g = np.empty((4, 4))
+    g[0:3, 0:3] = R
+    g[0:3, 3] = t
+    g[3, 0:3] = 0
+    g[3, 3] = 1
+    return g
 
 
 def jacobian_rigid_motion(g):
