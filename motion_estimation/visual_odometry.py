@@ -22,7 +22,8 @@ class CameraParameters(object):
 
         self.matrix = np.array([
             [fx, s, ox],
-            [0, fy, oy]
+            [0, fy, oy],
+            [0, 0, 1]
         ])
 
         self.focal_length = np.array([fx, fy])
