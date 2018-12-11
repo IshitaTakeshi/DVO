@@ -265,6 +265,10 @@ def jacobian_rigid_motion(g):
                   t_{2} &  -t_{1} &       0 & 0 & 0 & 1
             \\end{bmatrix}
         \\end{align}
+
+    Args:
+        g (np.ndarray): A matrix to represent rotation and translation
+
     """
 
     # left side of Mg
