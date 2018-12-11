@@ -1,6 +1,6 @@
 from skimage.io import imread
+from skimage.transform import resize
 import numpy as np
-
 
 n_pose_parameters = 6
 
@@ -175,7 +175,15 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
     J[:, 1, 0] = 0
     J[:, 1, 1] = fy
     J[:, 1, 2] = -G[:, 1] * fy / Z
-    return J / Z.reshape(Z.shape[0], 1, 1)
+    J = J / Z.reshape(Z.shape[0], 1, 1)
+    return J
+
+
+def isvalid(P, image_shape):
+    xs, ys = P[:, 0], P[:, 1]
+    vx = np.logical_and(0 <= xs, xs < width)
+    vy = np.logical_and(0 <= ys, ys < height)
+    return np.logical_and(xs, ys)
 
 
 def hat3(v):
@@ -392,11 +400,13 @@ class VisualOdometry(object):
 
     # @profile
     def estimate_in_layer(self, I0, I1, D0, xi):
+        # print(I0.shape, I1.shape, D0.shape)
         y = I1 - I0
         y = y.flatten()
 
         gradient = calc_image_gradient(I0)
         J = self.compute_jacobian(D0, gradient, rigid_transformation(xi))
+        print("power(J, 2).sum()", np.power(J, 2).sum())
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
