@@ -59,8 +59,10 @@ def projection(camera_parameters, G):
         \\end{bmatrix}
 
     """
-    Z = np.dot(camera_parameters.matrix, G)
-    return Z[0:2] / Z[2]
+
+    Z = np.dot(camera_parameters.matrix, G.T)
+    Z = Z[0:2] / Z[2]
+    return Z.T
 
 
 def inverse_projection(camera_parameters, P, depth):
