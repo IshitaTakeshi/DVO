@@ -53,8 +53,8 @@ def projection(camera_parameters, G):
 
     .. math::
         \\pi(G) = \\begin{bmatrix}
-            \\frac{G_1 \\cdot f_x}{G_3} - o_x &
-            \\frac{G_2 \\cdot f_y}{G_3} - o_y &
+            \\frac{G_1 \\cdot f_x}{G_3} - o_x \\\\
+            \\frac{G_2 \\cdot f_y}{G_3} - o_y \\\\
             h(\\mathbf{x})
         \\end{bmatrix}
 
@@ -71,8 +71,8 @@ def inverse_projection(camera_parameters, P, depth):
 
     .. math::
         S(\\mathbf{x}) = \\begin{bmatrix}
-            \\frac{(x + o_x) \\cdot h(\\mathbf{x})}{f_x} &
-            \\frac{(y + o_y) \\cdot h(\\mathbf{x})}{f_y} &
+            \\frac{(x + o_x) \\cdot h(\\mathbf{x})}{f_x} \\\\
+            \\frac{(y + o_y) \\cdot h(\\mathbf{x})}{f_y} \\\\
             h(\\mathbf{x})
         \\end{bmatrix}
     """
@@ -89,8 +89,8 @@ def inverse_projection(camera_parameters, P, depth):
 # @profile
 def jacobian_3dpoints(P):
     """
-    :math:`g(t)` is represented in the vector form :math:`vec(g)`
-    In this case we can calculate the multiplication :math:`RP + T` in
+    If :math:`g(t)` is represented in the vector form :math:`vec(g)`,
+    we can calculate the multiplication :math:`RP + T` in the form
 
     .. math::
         \\begin{align}
@@ -105,14 +105,18 @@ def jacobian_3dpoints(P):
                 0 & x & 0 & 0 & y & 0 & 0 & z & 0 & 0 & 1 & 0 \\\\
                 0 & 0 & x & 0 & 0 & y & 0 & 0 & z & 0 & 0 & 1 \\\\
             \\end{bmatrix}
-            \cdot
-            vec(g) \\\\
+            \\begin{bmatrix}
+                r_{11} \\\\ r_{21} \\\\ r_{31} \\\\
+                r_{12} \\\\ r_{22} \\\\ r_{32} \\\\
+                r_{13} \\\\ r_{23} \\\\ r_{33} \\\\
+                t_{1} \\\\ t_{2} \\\\ t_{3}
+            \\end{bmatrix}
         \\end{align}
 
     where
 
     .. math::
-        P = [x, y, z]^{\\top}
+        P = \\begin{bmatrix} x & y & z \\end{bmatrix}^{\\top}
 
     """
 
@@ -143,10 +147,10 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
             &= \\begin{bmatrix}
                 \\frac{f_{x}}{G_{3}} &
                 s &
-                -\\frac{f_{x} * G_{1} + s * G_{2}}{G_{3}^2}  \\
+                -\\frac{f_{x} G_{1} + s G_{2}}{G_{3}^2}  \\\\
                 0 &
                 \\frac{f_{y}}{G_{3}} &
-                -\\frac{f_{y} * G_{2}}{G_{3}^2}
+                -\\frac{f_{y} G_{2}}{G_{3}^2}
             \\end{bmatrix}
         \\end{align}
 
@@ -210,8 +214,6 @@ def rigid_transformation(v):
 def jacobian_rigid_motion(g):
     # TODO specify the shape of g
     """
-    Args:
-        g (np.ndarray): A matrix to represent rotation and translation
 
     .. math::
         \\frac{dg}{dt} = \\hat{\\xi} \\cdot g(t)
@@ -227,7 +229,7 @@ def jacobian_rigid_motion(g):
         stack(T) =
         \\begin{bmatrix}
             T_{11} & T_{21} & T_{31} & T_{12} & T_{22} & T_{32} &
-            T_{13} & T_{23} & T_{33} & T_{41} & T_{42} & T_{43}
+            T_{13} & T_{23} & T_{33} & T_{14} & T_{24} & T_{34}
         \\end{bmatrix}^{\\top}
 
 
@@ -240,7 +242,6 @@ def jacobian_rigid_motion(g):
                 r_{11} & r_{12} & r_{13} & t_{1} \\\\
                 r_{21} & r_{22} & r_{23} & t_{2} \\\\
                 r_{31} & r_{32} & r_{33} & t_{3} \\\\
-                     0 &      0 &      0 &     1 \\\\
             \\end{bmatrix} \\\\
         \\end{align}
 
@@ -261,7 +262,7 @@ def jacobian_rigid_motion(g):
                  r_{23} & -r_{13} &       0 & 0 & 0 & 0 \\\\
                       0 &   t_{3} &  -t_{2} & 1 & 0 & 0 \\\\
                  -t_{3} &       0 &   t_{1} & 0 & 1 & 0 \\\\
-                  t_{2} &  -t_{1} &       0 & 0 & 0 & 1 \\\\
+                  t_{2} &  -t_{1} &       0 & 0 & 0 & 1
             \\end{bmatrix}
         \\end{align}
     """
@@ -289,7 +290,7 @@ def jacobian_rigid_motion(g):
 def calc_image_gradient(image):
     """
     Return image gradient `D` of shape (n_image_pixels, 2)
-    that D[index], index = y * width + y stores the gradient at (x, y)
+    that :code:`D[y * width + y]` stores the gradient at (x, y)
     """
 
     dx = image - np.roll(image, -1, axis=0)
