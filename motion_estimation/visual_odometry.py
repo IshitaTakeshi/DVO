@@ -328,10 +328,9 @@ class VisualOdometry(object):
         self.current_depth = current_depth
 
         self.camera_parameters = camera_parameters
-        self.image_gradient = calc_image_gradient(reference_image)
 
     # @profile
-    def compute_jacobian(self, depth_map, g):
+    def compute_jacobian(self, depth_map, image_gradient, g):
         # S.shape = (n_image_pixels, 3)
 
         pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
@@ -361,23 +360,34 @@ class VisualOdometry(object):
         J = np.tensordot(V, J, axes=((0, 2), (0, 1)))
 
         # W.shape = (n_image_pixels, 2)
-        W = self.image_gradient
+        W = image_gradient
+
         return np.dot(W, J)  # (n_image_pixels, n_pose_parameters)
+
+    def image_shapes(self, n_coarse_to_fine):
+        """
+        Generate image shapes for coarse-to-fine
+        """
+
+        shape = np.array(self.reference_image.shape)
+        shapes = np.array([shape / pow(2, i) for i in range(n_coarse_to_fine)])
+        return shapes.astype(np.int64)
 
     def estimate_motion(self, n_coarse_to_fine=5,
                         initial_estimate=None):
         if initial_estimate is None:
             initial_estimate = np.zeros(n_pose_parameters)
 
-        xi = initial_estimate  # t0
+        xi = initial_estimate
 
-        for i in range(n_coarse_to_fine):
+        for shape in self.image_shapes(n_coarse_to_fine):
             xi = self.estimate_in_layer(
-                self.reference_image,
-                self.current_image,
-                self.reference_depth,
+                resize(self.reference_image, shape),
+                resize(self.current_image, shape),
+                resize(self.reference_depth, shape),
                 xi
             )
+
         return xi
 
     # @profile
@@ -385,7 +395,8 @@ class VisualOdometry(object):
         y = I1 - I0
         y = y.flatten()
 
-        J = self.compute_jacobian(D0, rigid_transformation(xi))
+        gradient = calc_image_gradient(I0)
+        J = self.compute_jacobian(D0, gradient, rigid_transformation(xi))
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
