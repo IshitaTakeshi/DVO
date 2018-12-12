@@ -76,12 +76,11 @@ def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
 class VisualOdometry(object):
     def __init__(self, camera_parameters,
                  reference_image, reference_depth,
-                 current_image, current_depth):
+                 current_image):
 
         self.reference_image = reference_image
         self.reference_depth = reference_depth
         self.current_image = current_image
-        self.current_depth = current_depth
 
         self.camera_parameters = camera_parameters
 
@@ -117,11 +116,8 @@ class VisualOdometry(object):
         y = y.flatten()
 
         g = transformation_matrix(xi)
-
         gradient = calc_image_gradient(I1)
         J = compute_jacobian(self.camera_parameters, gradient, D0, g)
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
-        # diff = np.dot(J, xi) + y
-        # print(np.power(diff, 2).sum())
         return xi
