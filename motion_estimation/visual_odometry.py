@@ -44,12 +44,12 @@ def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
     G = transform(g, S)
 
     # M.shape = (12, n_pose_parameters)
-    # convert xi -> stack(dg)
-    M = jacobian_rigid_motion(g)
+    # convert xi -> d stack(g)
+    M = jacobian_rigid_motion(g)  # M * xi = d(stack(g)) / dt
 
     # U.shape = (n_image_pixels, 3, 12)
-    # convert stack(dg) -> dG
-    U = jacobian_transform(G)
+    # convert d stack(g) -> dG
+    U = jacobian_transform(S)  # dG / d(stack(g))
 
     # V.shape = (n_image_pixels, 2, 3)
     # convert dG -> dpi
