@@ -13,6 +13,21 @@ from motion_estimation.rigid import transform
 n_pose_parameters = 6
 
 
+def compute_mask(camera_parameters, coordinates, image_shape):
+    height, width = image_shape[:2]
+    coordinates = projection(camera_parameters, coordinates)
+
+    mask_x = np.logical_and(
+        0 <= coordinates[:, 0],
+        coordinates[:, 0] < width
+    )
+    mask_y = np.logical_and(
+        0 <= coordinates[:, 1],
+        coordinates[:, 1] < height
+    )
+    return np.logical_and(mask_x, mask_y)
+
+
 def compute_jacobian(camera_parameters, image, depth_map, g):
     # S.shape = (n_image_pixels, 3)
 
