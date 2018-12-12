@@ -96,31 +96,36 @@ def test_jacobian_projections():
         assert_array_almost_equal(J, GT)
 
 
-def test_jacobian_rigid_motion():
-    g = np.array([
-         [1, 4, 7, 10],
-         [2, 5, 8, 11],
-         [3, 6, 9, 12]
+def test_calc_image_gradient():
+    image = np.array([
+        [3, 1, -1, 4],
+        [2, 4, 1, -8],
+        [-1, 0, 1, 4],
+        [7, -3, 0, 5]
     ])
+
+    D = calc_image_gradient(image)
 
     GT = np.array([
-       [0, 3, -2, 0, 0, 0],
-       [-3, 0, 1, 0, 0, 0],
-       [2, -1, 0, 0, 0, 0],
-       [0, 6, -5, 0, 0, 0],
-       [-6, 0, 4, 0, 0, 0],
-       [5, -4, 0, 0, 0, 0],
-       [0, 9, -8, 0, 0, 0],
-       [-9, 0, 7, 0, 0, 0],
-       [8, -7, 0, 0, 0, 0],
-       [0, 12, -11, 1, 0, 0],
-       [-12, 0, 10, 0, 1, 0],
-       [11, -10, 0, 0, 0, 1]
+        [2, 2, -5, 1],
+        [-2, 3, 9, -10],
+        [-1, -1, -3, 5],
+        [10, -3, -5, -2]
     ])
+    GT = GT.flatten()
+    assert_array_equal(D[:, 0], GT)
 
-    assert_array_equal(jacobian_rigid_motion(g), GT)
+    GT = np.array([
+        [1, -3, -2, 12],
+        [3, 4, 0, -12],
+        [-8, 3, 1, -1],
+        [4, -4, 1, 1]
+    ])
+    GT = GT.flatten()
+    assert_array_equal(D[:, 1], GT)
 
 
-test_jacobian_3dpoints()
 test_jacobian_rigid_motion()
+test_jacobian_transform()
 test_jacobian_projections()
+test_calc_image_gradient()

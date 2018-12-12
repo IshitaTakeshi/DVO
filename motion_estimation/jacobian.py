@@ -34,6 +34,10 @@ def jacobian_transform(P):
     .. math::
         P = \\begin{bmatrix} x & y & z \\end{bmatrix}^{\\top}
 
+    Returns:
+        np.ndarray:
+            Jacobian :code:`J` of shape (n_image_pixels, 3, 12)
+            which :code:`J[i]` represents :math:`dG(P[i])/dg`
     """
 
     n_3dpoints = P.shape[0]
@@ -150,6 +154,8 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
             \\end{bmatrix}
         \\end{align}
 
+    Args:
+        G (np.ndarray): n_image_pixels
     """
 
     n_image_pixels = G.shape[0]
@@ -181,6 +187,6 @@ def calc_image_gradient(image):
     that :code:`D[y * width + y]` stores the gradient at (x, y)
     """
 
-    dx = image - np.roll(image, -1, axis=0)
-    dy = image - np.roll(image, -1, axis=1)
+    dx = image - np.roll(image, -1, axis=1)
+    dy = image - np.roll(image, -1, axis=0)
     return np.vstack([dx.flatten(), dy.flatten()]).T
