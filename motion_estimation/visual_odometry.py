@@ -2,15 +2,53 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 
-from motion_estimation.rigid import transform, transformation_matrix
+from motion_estimation.rigid import transformation_matrix
 from motion_estimation.coordinates import compute_pixel_coordinates
 from motion_estimation.projection import projection, inverse_projection
-from motion_estimation.jacobian import (
-    jacobian_3dpoints, jacobian_rigid_motion, jacobian_projections,
-    calc_image_gradient)
+from motion_estimation.jacobian import (calc_image_gradient,
+        jacobian_rigid_motion, jacobian_transform, jacobian_projections)
+from motion_estimation.rigid import transform
 
 
 n_pose_parameters = 6
+
+
+def compute_jacobian(camera_parameters, image, depth_map, g):
+    # S.shape = (n_image_pixels, 3)
+
+    image_gradient = calc_image_gradient(image)
+
+    pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
+
+    S = inverse_projection(
+        camera_parameters,
+        pixel_coordinates,
+        depth_map.flatten()
+    )
+
+    # G.shape = (n_image_pixels, 3)
+    G = transform(g, S)
+
+    # M.shape = (12, n_pose_parameters)
+    M = jacobian_rigid_motion(g)
+    # U.shape = (n_3dpoints, 3, 12)
+    U = jacobian_transform(G)
+    # V.shape = (n_3dpoints, 2, 3)
+    V = jacobian_projections(camera_parameters, G)
+
+    # Equivalent to J = np.einsum('kli,ij->klj', U, M)
+    # J.shape = (n_3dpoints, 3, n_pose_parameters)
+    J = np.tensordot(U, M, axes=(2, 0))
+
+    # Equivalent to J = np.einsum('ilj,ijk->lk', V, J)
+    # J.shape = (2, n_pose_parameters)
+    J = np.tensordot(V, J, axes=((0, 2), (0, 1)))
+
+    # W.shape = (n_image_pixels, 2)
+    W = image_gradient
+
+    J = np.dot(W, J)  # (n_image_pixels, n_pose_parameters)
+    return J
 
 
 class VisualOdometry(object):
@@ -24,41 +62,6 @@ class VisualOdometry(object):
         self.current_depth = current_depth
 
         self.camera_parameters = camera_parameters
-
-    # @profile
-    def compute_jacobian(self, depth_map, image_gradient, g):
-        # S.shape = (n_image_pixels, 3)
-
-        pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
-
-        S = inverse_projection(
-            self.camera_parameters,
-            pixel_coordinates,
-            depth_map.flatten()
-        )
-
-        # G.shape = (n_image_pixels, 3)
-        G = transform(g, S)
-
-        # M.shape = (12, n_pose_parameters)
-        M = jacobian_rigid_motion(g)
-        # U.shape = (n_3dpoints, 3, 12)
-        U = jacobian_3dpoints(G)
-        # V.shape = (n_3dpoints, 2, 3)
-        V = jacobian_projections(self.camera_parameters, G)
-
-        # Equivalent to J = np.einsum('kli,ij->klj', U, M)
-        # J.shape = (n_3dpoints, 3, n_pose_parameters)
-        J = np.tensordot(U, M, axes=(2, 0))
-
-        # Equivalent to J = np.einsum('ilj,ijk->lk', V, J)
-        # J.shape = (2, n_pose_parameters)
-        J = np.tensordot(V, J, axes=((0, 2), (0, 1)))
-
-        # W.shape = (n_image_pixels, 2)
-        W = image_gradient
-
-        return np.dot(W, J)  # (n_image_pixels, n_pose_parameters)
 
     def image_shapes(self, n_coarse_to_fine):
         """
@@ -91,8 +94,11 @@ class VisualOdometry(object):
         y = I1 - I0
         y = y.flatten()
 
-        gradient = calc_image_gradient(I0)
-        J = self.compute_jacobian(D0, gradient, transformation_matrix(xi))
+        g = transformation_matrix(xi)
+        J = compute_jacobian(self.camera_parameters, I0, D0, g)
+        print("power(J, 2).sum()", np.power(J, 2).sum())
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
+        # diff = np.dot(J, xi) + y
+        # print(np.power(diff, 2).sum())
         return xi
