@@ -85,7 +85,8 @@ class VisualOdometry(object):
 
         shape = np.array(self.reference_image.shape)
         shapes = np.array([shape / pow(2, i) for i in range(n_coarse_to_fine)])
-        return shapes.astype(np.int64)
+        shapes = shapes.astype(np.int64)
+        return shapes[::-1]
 
     def estimate_motion(self, n_coarse_to_fine=5,
                         initial_estimate=None):
