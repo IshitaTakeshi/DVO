@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from motion_estimation.camera import CameraParameters
 from motion_estimation.rigid import transformation_matrix
+from motion_estimation.twist import twist
 from motion_estimation.jacobian import (
         jacobian_transform, jacobian_rigid_motion, jacobian_projections,
         calc_image_gradient)
@@ -18,7 +19,8 @@ def test_jacobian_rigid_motion():
     g = np.array([
          [1, 4, 7, 10],
          [2, 5, 8, 11],
-         [3, 6, 9, 12]
+         [3, 6, 9, 12],
+         [0, 0, 0, 1]
     ])
 
     GT = np.array([
@@ -36,7 +38,13 @@ def test_jacobian_rigid_motion():
        [11, -10, 0, 0, 0, 1]
     ])
 
-    assert_array_equal(jacobian_rigid_motion(g), GT)
+    MG = jacobian_rigid_motion(g)
+
+    assert_array_equal(MG, GT)
+
+    k = [1, 2, 3, 4, 5, 6]
+    K = twist(k)[:3]
+    assert_array_equal(np.dot(K, g).T.flatten(), np.dot(MG, k))
 
 
 def test_jacobian_transform():
@@ -88,6 +96,7 @@ def test_jacobian_projections():
     )
 
     JS = jacobian_projections(camera_parameters, GS)
+
     for J, G in zip(JS, GS):
         GT = np.array([
             [fx / G[2], s / G[2], -(fx * G[0] + s * G[1]) / pow(G[2], 2)],
