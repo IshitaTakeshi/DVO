@@ -1,1 +1,2 @@
-from motion_estimation.visual_odometry import VisualOdometry, CameraParameters
+from motion_estimation.visual_odometry import VisualOdometry
+from motion_estimation.camera import CameraParameters
