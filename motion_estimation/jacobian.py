@@ -3,7 +3,7 @@ import numpy as np
 from motion_estimation.twist import skew_matrix
 
 
-def jacobian_3dpoints(P):
+def jacobian_transform(P):
     """
     If :math:`g(t)` is represented in the vector form :math:`vec(g)`,
     we can calculate the multiplication :math:`RP + T` in the form
