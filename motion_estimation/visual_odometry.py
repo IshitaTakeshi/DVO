@@ -205,7 +205,7 @@ def rodrigues(v):
     K = hat3(v)
     cos = np.cos(theta)
     sin = np.sin(theta)
-    return I * cos + (1 - sin) * np.outer(v, v) + sin * K
+    return I * cos + (1 - cos) * np.outer(v, v) + sin * K
 
 
 def rigid_transformation(v):
