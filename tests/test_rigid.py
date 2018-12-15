@@ -19,5 +19,8 @@ def test_transform():
     P = np.array([1, 3, 2])
     assert_array_equal(transform(g, P), np.array([-2, -2, -1]))
 
+    g = np.eye(4)
+    assert_array_equal(transform(g, P), P)
+
 
 test_transform()
