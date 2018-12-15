@@ -67,7 +67,6 @@ class Dataset(object):
         return rgb_image, depth_image
 
 
-@profile
 def main():
     timestamps, poses = load_groundtruth()
 
@@ -75,13 +74,15 @@ def main():
 
     camera_parameters = CameraParameters(10, 0, 0)
 
-    I0, D0 = dataset.load(timestamps[0])
+    I0, D0 = dataset.load(timestamps[1200])
     I0 = rgb2gray(I0)
 
-    I1, D1 = dataset.load(timestamps[1])
+    I1, D1 = dataset.load(timestamps[1244])
     I1 = rgb2gray(I1)
 
-    vo = VisualOdometry(camera_parameters, I0, D0, I1, D1)
+    print("Images are same: {}".format((I0 == I1).all()))
+
+    vo = VisualOdometry(camera_parameters, I0, D0, I1)
 
     # I0, D0 = I1, D1
 
