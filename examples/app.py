@@ -13,7 +13,7 @@ from scipy.ndimage import map_coordinates
 from matplotlib import pyplot as plt
 
 from motion_estimation import VisualOdometry, CameraParameters
-from motion_estimation.projection import reprojection
+from motion_estimation.projection import reprojection, warp
 from motion_estimation.rigid import transformation_matrix
 
 
@@ -37,15 +37,6 @@ def load(frame):
 def approximate_camera_matrix(image_shape):
     H, W = image_shape[:2]
     return CameraParameters(focal_length=W, offset=[W/2, H/2])
-
-
-def warp(camera_parameters, image, depth, g):
-    P = reprojection(camera_parameters, depth, g)
-
-    P = P[:, [1, 0]]
-    warped = map_coordinates(image, P.T)
-    warped = warped.reshape(image.shape[1], image.shape[0]).T
-    return warped
 
 
 def plot(current, next_, estimated):
@@ -80,6 +71,7 @@ print("motion")
 print(transformation_matrix(motion))
 
 g = transformation_matrix(-motion)
-estimated_image = warp(camera_parameters, current_image, current_depth, g)
+estimated_image, mask = warp(camera_parameters, current_image, current_depth, g)
+estimated_image[np.logical_not(mask)] = 0.0
 
 plot(current_image, estimated_image, next_image)
