@@ -109,6 +109,8 @@ def jacobian_rigid_motion(g):
 
     """
 
+    g = g[:3]  # discard the bottom row
+
     # left side of Mg
     # ML.shape = (12, 3)
     ML = np.vstack([
@@ -167,9 +169,10 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
     fx, fy = camera_parameters.focal_length
     s = camera_parameters.skew
 
-    # tile the matrix below `n_image_pixels` times
-    # [[fx, s, -(fx*G[0] + s*G[1]) / Z],
-    #  [0, fy, -G[1] * fy / Z]]
+    # J[i] = [
+    #   [fx, s, -(fx*G[i, 0] + s*G[i, 1]) / Z[i]],
+    #   [0, fy, -G[i, 1] * fy / Z[i]]
+    # ] / Z[i]
 
     J[:, 0, 0] = fx
     J[:, 0, 1] = s
