@@ -5,30 +5,13 @@ from skimage.transform import resize
 
 from motion_estimation.rigid import transformation_matrix
 from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import projection, inverse_projection
+from motion_estimation.projection import inverse_projection, warp
 from motion_estimation.jacobian import (calc_image_gradient,
-        jacobian_rigid_motion, jacobian_transform, jacobian_projections)
+    jacobian_rigid_motion, jacobian_transform, jacobian_projections)
 from motion_estimation.rigid import transform
 
 
 n_pose_parameters = 6
-
-
-def is_in_rage(image_shape, coordinates):
-    height, width = image_shape[:2]
-    mask_x = np.logical_and(
-        0 <= coordinates[:, 0],
-        coordinates[:, 0] < width
-    )
-    mask_y = np.logical_and(
-        0 <= coordinates[:, 1],
-        coordinates[:, 1] < height
-    )
-    return np.logical_and(mask_x, mask_y)
-
-
-def compute_mask(camera_parameters, P, image_shape):
-    return is_in_rage(image_shape, projection(camera_parameters, P))
 
 
 def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
