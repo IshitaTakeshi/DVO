@@ -8,11 +8,15 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
 from motion_estimation.camera import CameraParameters
-from motion_estimation.rigid import transformation_matrix
+from motion_estimation.rigid import transformation_matrix, transform
 from motion_estimation.twist import twist
 from motion_estimation.jacobian import (
         jacobian_transform, jacobian_rigid_motion, jacobian_projections,
         calc_image_gradient)
+
+
+def stack(K):
+    return K[:3].T.flatten()
 
 
 def test_jacobian_rigid_motion():
@@ -44,13 +48,10 @@ def test_jacobian_rigid_motion():
 
     k = [1, 2, 3, 4, 5, 6]
     K = twist(k)[:3]
-    assert_array_equal(np.dot(K, g).T.flatten(), np.dot(MG, k))
+    assert_array_equal(stack(np.dot(K, g)), np.dot(MG, k))
 
 
 def test_jacobian_transform():
-    def homogeneous(p):
-        return np.hstack((p, 1))
-
     GT = np.array([
         [[1, 0, 0, 2, 0, 0, 3, 0, 0, 1, 0, 0],
          [0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 1, 0],
@@ -66,20 +67,14 @@ def test_jacobian_transform():
 
     assert_array_equal(jacobian_transform(P), GT)
 
-    xi = np.array([0.1, -0.5, 0.4, 0.2, 0.8, -0.3])
-    g = transformation_matrix(xi)
+    g = transformation_matrix(
+        np.array([0.1, -0.5, 0.4, 0.2, 0.8, -0.3])
+    )
 
     JP = jacobian_transform(P)
 
-    assert_array_equal(
-        np.dot(JP[0], g[:3].T.flatten()),
-        np.dot(g[:3], homogeneous(P[0]))
-    )
-
-    assert_array_equal(
-        np.dot(JP[1], g[:3].T.flatten()),
-        np.dot(g[:3], homogeneous(P[1]))
-    )
+    assert_array_almost_equal(np.dot(JP[0], stack(g[:3])), transform(g, P[0]))
+    assert_array_almost_equal(np.dot(JP[1], stack(g[:3])), transform(g, P[1]))
 
 
 def test_jacobian_projections():
@@ -98,9 +93,10 @@ def test_jacobian_projections():
     JS = jacobian_projections(camera_parameters, GS)
 
     for J, G in zip(JS, GS):
+        x, y, z = G
         GT = np.array([
-            [fx / G[2], s / G[2], -(fx * G[0] + s * G[1]) / pow(G[2], 2)],
-            [0, fy / G[2], -fy * G[1] / pow(G[2], 2)]
+            [fx / z, s / z, -(fx * x + s * y) / pow(z, 2)],
+            [0, fy / z, -fy * y / pow(z, 2)]
         ])
         assert_array_almost_equal(J, GT)
 
@@ -134,7 +130,33 @@ def test_calc_image_gradient():
     assert_array_equal(D[:, 1], GT)
 
 
+def test_approximation():
+    xi = np.array([1.8, -0.6, 0.9, 1.8, -2.8, -0.6])
+    dxi = np.array([4, -2, 2, -2, -3, -2]) / 100
+
+    xi0 = xi
+    xi1 = xi + dxi
+
+    S = np.array([
+        [1.0, 2.0, -1.0],
+        [0.5, -0.4, 0.2]
+    ])
+
+    g0 = transformation_matrix(xi0)
+    g1 = transformation_matrix(xi1)
+
+    G0 = transform(g0, S)
+    G1 = transform(g1, S)
+
+    # U.shape = (n_image_pixels, 3, 12)
+    U = jacobian_transform(G0)  # dG / d(stack(g))
+
+    print("dot(U, g1 - g0): ", U.dot(stack(g1) - stack(g0)))
+    print("G1 - G0        : ", G1 - G0)
+
+
 test_jacobian_rigid_motion()
 test_jacobian_transform()
 test_jacobian_projections()
 test_calc_image_gradient()
+test_approximation()
