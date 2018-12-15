@@ -89,7 +89,6 @@ class VisualOdometry(object):
         xi = initial_estimate
 
         for shape in self.image_shapes(n_coarse_to_fine):
-            print("before: {}".format(self.D0.shape))
             xi = self.estimate_in_layer(
                 resize(self.I0, shape),
                 resize(self.D0, shape),
@@ -100,13 +99,29 @@ class VisualOdometry(object):
         return xi
 
     def estimate_in_layer(self, I0, D0, I1, xi):
-        y = I1 - I0
-        y = y.flatten()
-
-
         g = transformation_matrix(xi)
         gradient = calc_image_gradient(I1)
+
+        # Transform each pixel of I1 from to I0 coordinates
+
+        warped, mask = warp(self.camera_parameters, I1, D0, g)
+
         J = compute_jacobian(self.camera_parameters, gradient, D0, g)
+
+        assert(mask.shape == warped.shape == I0.shape)
+
+        y = I0.flatten() - warped.flatten()  # comparison on t0 coordinates
+
+        # check if the rows of J is correctly associated with y
+
+        y = y[mask.flatten()]
+        J = J[mask.flatten()]
+
+        if np.isnan(y).any():
+            raise ValueError()
+
+        if np.isnan(J).any():
+            raise ValueError()
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
