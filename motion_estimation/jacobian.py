@@ -148,8 +148,8 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
             \\end{bmatrix} \\\\
             &= \\begin{bmatrix}
                 \\frac{f_{x}}{G_{3}} &
-                s &
-                -\\frac{f_{x} G_{1} + s G_{2}}{G_{3}^2}  \\\\
+                0 &
+                -\\frac{f_{x} G_{1}  \\\\
                 0 &
                 \\frac{f_{y}}{G_{3}} &
                 -\\frac{f_{y} G_{2}}{G_{3}^2}
@@ -167,16 +167,15 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
     Z[Z == 0] = epsilon  # avoid zero divisions
 
     fx, fy = camera_parameters.focal_length
-    s = camera_parameters.skew
 
     # J[i] = [
-    #   [fx, s, -(fx*G[i, 0] + s*G[i, 1]) / Z[i]],
+    #   [fx, 0, -fx*G[i, 0] / Z[i]],
     #   [0, fy, -G[i, 1] * fy / Z[i]]
     # ] / Z[i]
 
     J[:, 0, 0] = fx
-    J[:, 0, 1] = s
-    J[:, 0, 2] = -(fx * G[:, 0] + s * G[:, 1]) / Z
+    J[:, 0, 1] = 0
+    J[:, 0, 2] = -(fx * G[:, 0]) / Z
     J[:, 1, 0] = 0
     J[:, 1, 1] = fy
     J[:, 1, 2] = -G[:, 1] * fy / Z
