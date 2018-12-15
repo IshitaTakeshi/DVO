@@ -82,12 +82,10 @@ def test_jacobian_projections():
 
     fx = 1.2
     fy = 1.0
-    s = 0.8
 
     camera_parameters = CameraParameters(
         focal_length=[fx, fy],
-        offset=[0, 0],
-        skew=s
+        offset=[0, 0]
     )
 
     JS = jacobian_projections(camera_parameters, GS)
@@ -95,7 +93,7 @@ def test_jacobian_projections():
     for J, G in zip(JS, GS):
         x, y, z = G
         GT = np.array([
-            [fx / z, s / z, -(fx * x + s * y) / pow(z, 2)],
+            [fx / z, 0, -fx * x / pow(z, 2)],
             [0, fy / z, -fy * y / pow(z, 2)]
         ])
         assert_array_almost_equal(J, GT)
