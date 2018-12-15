@@ -1,6 +1,7 @@
+import numpy as np
+
 from skimage.io import imread
 from skimage.transform import resize
-import numpy as np
 
 from motion_estimation.rigid import transformation_matrix
 from motion_estimation.coordinates import compute_pixel_coordinates
@@ -74,13 +75,16 @@ def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
 
 
 class VisualOdometry(object):
-    def __init__(self, camera_parameters,
-                 reference_image, reference_depth,
-                 current_image):
+    def __init__(self, camera_parameters, I0, D0, I1):
 
-        self.reference_image = reference_image
-        self.reference_depth = reference_depth
-        self.current_image = current_image
+        """
+        """
+
+        # TODO check if np.ndim(D0) == np.ndim(I1) == 2
+
+        self.I0 = I0
+        self.D0 = D0
+        self.I1 = I1
 
         self.camera_parameters = camera_parameters
 
@@ -89,7 +93,7 @@ class VisualOdometry(object):
         Generate image shapes for coarse-to-fine
         """
 
-        shape = np.array(self.reference_image.shape)
+        shape = np.array(self.I0.shape)
         shapes = np.array([shape / pow(2, i) for i in range(n_coarse_to_fine)])
         shapes = shapes.astype(np.int64)
         return shapes[::-1]
@@ -102,18 +106,20 @@ class VisualOdometry(object):
         xi = initial_estimate
 
         for shape in self.image_shapes(n_coarse_to_fine):
+            print("before: {}".format(self.D0.shape))
             xi = self.estimate_in_layer(
-                resize(self.reference_image, shape),
-                resize(self.current_image, shape),
-                resize(self.reference_depth, shape),
+                resize(self.I0, shape),
+                resize(self.D0, shape),
+                resize(self.I1, shape),
                 xi
             )
 
         return xi
 
-    def estimate_in_layer(self, I0, I1, D0, xi):
+    def estimate_in_layer(self, I0, D0, I1, xi):
         y = I1 - I0
         y = y.flatten()
+
 
         g = transformation_matrix(xi)
         gradient = calc_image_gradient(I1)
