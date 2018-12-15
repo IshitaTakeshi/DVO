@@ -101,8 +101,6 @@ def warp(camera_parameters, I1, D0, g):
 
     P, mask = reprojection(camera_parameters, D0, g)
 
-    height, width = D0.shape
-
     # Because 'map_coordinates' requires indices of
     # [row, column] order, the 2nd axis have to be reversed
     # so that it becomes [y, x]
@@ -124,6 +122,6 @@ def warp(camera_parameters, I1, D0, g):
     # ]
 
     warped_image = map_coordinates(I1, P, mode="constant", cval=np.nan)
-    warped_image = warped_image.reshape(height, width)
+    warped_image = warped_image.reshape(D0.shape)
 
     return warped_image, mask
