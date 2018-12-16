@@ -17,9 +17,9 @@ def jacobian_transform(P):
             \cdot
             vec(g) \\\\
             &= \\begin{bmatrix}
-                x & 0 & 0 & y & 0 & 0 & z & 0 & 0 & 1 & 0 & 0 \\\\
-                0 & x & 0 & 0 & y & 0 & 0 & z & 0 & 0 & 1 & 0 \\\\
-                0 & 0 & x & 0 & 0 & y & 0 & 0 & z & 0 & 0 & 1 \\\\
+                x & y & z & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\\
+                0 & 0 & 0 & 0 & x & y & z & 1 & 0 & 0 & 0 & 0 \\\\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & x & y & z & 1 \\\\
             \\end{bmatrix}
             \\begin{bmatrix}
                 r_{11} \\\\ r_{21} \\\\ r_{31} \\\\
@@ -42,10 +42,9 @@ def jacobian_transform(P):
 
     n_3dpoints = P.shape[0]
     J = np.zeros((n_3dpoints, 3, 12))
-    J[:, 0, 0] = J[:, 1, 1] = J[:, 2, 2] = P[:, 0]
-    J[:, 0, 3] = J[:, 1, 4] = J[:, 2, 5] = P[:, 1]
-    J[:, 0, 6] = J[:, 1, 7] = J[:, 2, 8] = P[:, 2]
-    J[:, [0, 1, 2], [9, 10, 11]] = 1
+
+    J[:, 0, 0:3] = J[:, 1, 4:7] = J[:, 2, 8:11] = P
+    J[:, [0, 1, 2], [3, 7, 11]] = 1
     return J
 
 
@@ -90,16 +89,16 @@ def jacobian_rigid_motion(g):
             M_{g}
             &= \\begin{bmatrix}
                       0 &  r_{31} & -r_{21} & 0 & 0 & 0 \\\\
-                -r_{31} &       0 &  r_{11} & 0 & 0 & 0 \\\\
-                 r_{21} & -r_{11} &       0 & 0 & 0 & 0 \\\\
                       0 &  r_{32} & -r_{22} & 0 & 0 & 0 \\\\
-                -r_{32} &       0 &  r_{12} & 0 & 0 & 0 \\\\
-                 r_{22} & -r_{12} &       0 & 0 & 0 & 0 \\\\
                       0 &  r_{33} & -r_{23} & 0 & 0 & 0 \\\\
-                -r_{33} &       0 &  r_{13} & 0 & 0 & 0 \\\\
-                 r_{23} & -r_{13} &       0 & 0 & 0 & 0 \\\\
                       0 &   t_{3} &  -t_{2} & 1 & 0 & 0 \\\\
+                -r_{31} &       0 &  r_{11} & 0 & 0 & 0 \\\\
+                -r_{32} &       0 &  r_{12} & 0 & 0 & 0 \\\\
+                -r_{33} &       0 &  r_{13} & 0 & 0 & 0 \\\\
                  -t_{3} &       0 &   t_{1} & 0 & 1 & 0 \\\\
+                 r_{21} & -r_{11} &       0 & 0 & 0 & 0 \\\\
+                 r_{22} & -r_{12} &       0 & 0 & 0 & 0 \\\\
+                 r_{23} & -r_{13} &       0 & 0 & 0 & 0 \\\\
                   t_{2} &  -t_{1} &       0 & 0 & 0 & 1
             \\end{bmatrix}
         \\end{align}
@@ -109,26 +108,18 @@ def jacobian_rigid_motion(g):
 
     """
 
-    g = g[:3]  # discard the bottom row
+    M = np.zeros((12, 6))
+    M[0:4, 1] = g[2]
+    M[0:4, 2] = -g[1]
 
-    # left side of Mg
-    # ML.shape = (12, 3)
-    ML = np.vstack([
-        skew_matrix(-g[:, 0]),
-        skew_matrix(-g[:, 1]),
-        skew_matrix(-g[:, 2]),
-        skew_matrix(-g[:, 3])
-    ])
+    M[4:8, 0] = -g[2]
+    M[4:8, 2] = g[0]
 
-    # right side
-    # MR.shape = (12, 3)
-    MR = np.vstack([
-        np.zeros((9, 3)),
-        np.eye(3)
-    ])
+    M[8:12, 0] = g[1]
+    M[8:12, 1] = -g[0]
 
-    # combine them to form Mg (Mg.shape = (12, 4))
-    return np.hstack((ML, MR))
+    M[[3, 7, 11], [3, 4, 5]] = 1
+    return M
 
 
 def jacobian_projections(camera_parameters, G, epsilon=1e-4):
