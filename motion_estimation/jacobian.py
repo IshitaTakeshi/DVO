@@ -189,6 +189,5 @@ def calc_image_gradient(image):
     that :code:`D[y * width + y]` stores the gradient at (x, y)
     """
 
-    dx = image - np.roll(image, -1, axis=1)
-    dy = image - np.roll(image, -1, axis=0)
+    dy, dx = np.gradient(image)
     return np.vstack([dx.flatten(), dy.flatten()]).T
