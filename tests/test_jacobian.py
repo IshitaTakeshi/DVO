@@ -100,35 +100,6 @@ def test_jacobian_projections():
         assert_array_almost_equal(J, GT)
 
 
-def test_calc_image_gradient():
-    image = np.array([
-        [3, 1, -1, 4],
-        [2, 4, 1, -8],
-        [-1, 0, 1, 4],
-        [7, -3, 0, 5]
-    ])
-
-    D = calc_image_gradient(image)
-
-    GT = np.array([
-        [2, 2, -5, 1],
-        [-2, 3, 9, -10],
-        [-1, -1, -3, 5],
-        [10, -3, -5, -2]
-    ])
-    GT = GT.flatten()
-    assert_array_equal(D[:, 0], GT)
-
-    GT = np.array([
-        [1, -3, -2, 12],
-        [3, 4, 0, -12],
-        [-8, 3, 1, -1],
-        [4, -4, 1, 1]
-    ])
-    GT = GT.flatten()
-    assert_array_equal(D[:, 1], GT)
-
-
 def test_approximation():
     xi = np.array([1.8, -0.6, 0.9, 1.8, -2.8, -0.6])
     dxi = np.array([4, -2, 2, -2, -3, -2]) / 100
@@ -157,5 +128,4 @@ def test_approximation():
 test_jacobian_rigid_motion()
 test_jacobian_transform()
 test_jacobian_projections()
-test_calc_image_gradient()
 test_approximation()
