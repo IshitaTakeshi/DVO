@@ -1,5 +1,19 @@
 import numpy as np
-from motion_estimation.rotation import rodrigues
+from motion_estimation.twist import cross_product_matrix
+
+
+def rodrigues(v):
+    I = np.eye(3)
+    theta = np.linalg.norm(v)
+
+    if np.isclose(theta, 0):
+        return I
+
+    v = v / theta
+    K = cross_product_matrix(v)
+    cos = np.cos(theta)
+    sin = np.sin(theta)
+    return I * cos + (1 - cos) * np.outer(v, v) + sin * K
 
 
 def transform(g, P):
