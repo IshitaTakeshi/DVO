@@ -1,6 +1,5 @@
 import numpy as np
 
-from motion_estimation.twist import skew_matrix
 
 
 def jacobian_transform(P):

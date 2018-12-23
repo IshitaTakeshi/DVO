@@ -9,7 +9,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from motion_estimation.camera import CameraParameters
 from motion_estimation.rigid import transformation_matrix, transform
-from motion_estimation.twist import twist
+from motion_estimation.twist import hat
 from motion_estimation.jacobian import (
         jacobian_transform, jacobian_rigid_motion, jacobian_projections,
         calc_image_gradient)
@@ -48,7 +48,7 @@ def test_jacobian_rigid_motion():
     assert_array_equal(MG, GT)
 
     k = [1, 2, 3, 4, 5, 6]
-    K = twist(k)[:3]
+    K = hat(k)[:3]
     assert_array_equal(stack(np.dot(K, g)), np.dot(MG, k))
 
 
