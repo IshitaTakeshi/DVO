@@ -14,7 +14,25 @@ from motion_estimation.rigid import transform
 n_pose_parameters = 6
 
 
+def compute_weights(r, nu=5, n_iter=10):
+    # Kerl Christian, Jürgen Sturm, and Daniel Cremers.
+    # "Robust odometry  estimation for RGB-D cameras."
+    # Robotics and Automation (ICRA)
+
+    s = np.power(r, 2)
+
+    variance = 1.0
+    for i in range(n_iter):
+        variance = np.mean(s * (nu + 1) / (nu + s / variance))
+
+    return np.sqrt((nu + 1) / (nu + s / variance));
+
+
 def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
+    """
+    Calculate C(x, t)
+    """
+
     pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
 
     # S.shape = (n_image_pixels, 3)
@@ -120,5 +138,9 @@ class VisualOdometry(object):
         assert(not np.isnan(y).any())
         assert(not np.isnan(J).any())
 
+        # weights = compute_weights(y)
+        # JW = J.T * weights
+        # L = np.dot(JW, J)
+        # xi = -np.linalg.inv(L).dot(JW).dot(y)
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
