@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 from motion_estimation import VisualOdometry, CameraParameters
 from motion_estimation.projection import reprojection, warp
 from motion_estimation.rigid import transformation_matrix
+from visualization.plot import plot
 
 
 image_root = Path("dataset", "20fps_images_archieve")
@@ -37,24 +38,6 @@ def load(frame):
 def approximate_camera_matrix(image_shape):
     H, W = image_shape[:2]
     return CameraParameters(focal_length=W, offset=[W/2, H/2])
-
-
-def plot(current, next_, estimated):
-    fig = plt.figure()
-
-    ax = fig.add_subplot(131)
-    ax.imshow(current)
-    ax.set_title("current image")
-
-    ax = fig.add_subplot(132)
-    ax.imshow(next_)
-    ax.set_title("estimated image")
-
-    ax = fig.add_subplot(133)
-    ax.imshow(estimated)
-    ax.set_title("next image")
-
-    plt.show()
 
 
 camera_parameters = CameraParameters(focal_length=10, offset=0)
