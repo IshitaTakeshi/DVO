@@ -61,7 +61,6 @@ def reprojection(camera_parameters, depth_map, g):
 
     S = inverse_projection(camera_parameters, P, depth_map.flatten())
     G = transform(g, S)
-
     Q = projection(camera_parameters, G)
 
     mask = compute_mask(depth_map, Q)

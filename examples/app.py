@@ -39,7 +39,7 @@ I0, D0 = load(1)
 I1, D1 = load(3)
 
 vo = VisualOdometry(camera_parameters, I0, D0, I1)
-motion = vo.estimate_motion(n_coarse_to_fine=8)
+motion = vo.estimate_motion(n_coarse_to_fine=4)
 
 g = transformation_matrix(motion)
 print(g)
