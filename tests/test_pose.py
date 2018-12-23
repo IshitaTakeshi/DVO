@@ -74,6 +74,13 @@ def test_quaternion_to_rotation():
     q = np.array([0, 1, 1, 0])
     assert_array_equal(quaternion_to_rotation(q), Q)
 
+    # random vector
+    q = np.array([0.51249408, -0.6836772, -0.99831886, 0.25125051])
+    R = quaternion_to_rotation(q)
+
+    assert_array_almost_equal(np.dot(R, R.T), np.eye(3))
+    assert_array_almost_equal(np.linalg.det(R), 1)
+
 
 test_rotation_to_quaternion()
 test_quaternion_to_rotation()
