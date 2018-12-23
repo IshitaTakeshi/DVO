@@ -59,7 +59,6 @@ def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
 
 class VisualOdometry(object):
     def __init__(self, camera_parameters, I0, D0, I1):
-
         """
         """
 
@@ -79,6 +78,8 @@ class VisualOdometry(object):
         shape = np.array(self.I0.shape)
         shapes = np.array([shape / pow(2, i) for i in range(n_coarse_to_fine)])
         shapes = shapes.astype(np.int64)
+        # TODO raise ValueError
+        # if shape[0] * shape[1] < 6 (number of pose parameters)
         return shapes[::-1]
 
     def estimate_motion(self, n_coarse_to_fine=5,
@@ -102,7 +103,7 @@ class VisualOdometry(object):
         g = transformation_matrix(xi)
         gradient = calc_image_gradient(I1)
 
-        # Transform each pixel of I1 from to I0 coordinates
+        # Transform each pixel of I1 to I0 coordinates
 
         warped, mask = warp(self.camera_parameters, I1, D0, g)
 
@@ -111,8 +112,6 @@ class VisualOdometry(object):
         assert(mask.shape == warped.shape == I0.shape)
 
         y = I0.flatten() - warped.flatten()  # comparison on t0 coordinates
-
-        # check if the rows of J is correctly associated with y
 
         y = y[mask.flatten()]
         J = J[mask.flatten()]
