@@ -64,13 +64,16 @@ def rotation_to_quaternion(Q):
 
 
 def quaternion_to_rotation(q):
+    # See
+    # https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+    # #Quaternion-derived_rotation_matrix
+
     w, x, y, z = q
 
     n = np.dot(q, q)
     s = 0 if n == 0 else 2 / n
 
-    v = np.array([x, y, z])
-
+    v = q[1:]
     wx, wy, wz = s * w * v
     xx, yy, zz = s * v * v
 
