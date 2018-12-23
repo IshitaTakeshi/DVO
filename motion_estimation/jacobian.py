@@ -29,6 +29,8 @@ def jacobian_transform(P):
     .. math::
         P = \\begin{bmatrix} x & y & z \\end{bmatrix}^{\\top}
 
+    Args:
+        P (np.ndarray): Array of shape (n_3dpoints, 3)
     Returns:
         np.ndarray:
             Jacobian :code:`J` of shape (n_image_pixels, 3, 12)
@@ -46,6 +48,7 @@ def jacobian_transform(P):
 def jacobian_rigid_motion(g):
     # TODO specify the shape of g
     """
+    Returns `Mg` in the paper
 
     .. math::
         \\frac{dg}{dt} = \\hat{\\xi} \\cdot g(t)
