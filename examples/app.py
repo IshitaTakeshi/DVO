@@ -10,7 +10,6 @@ import numpy as np
 from skimage.io import imread
 from skimage.color import rgb2gray
 from scipy.ndimage import map_coordinates
-from matplotlib import pyplot as plt
 
 from motion_estimation import VisualOdometry, CameraParameters
 from motion_estimation.projection import reprojection, warp
@@ -32,29 +31,19 @@ def load(frame):
     path = Path(depth_root, prefix + ".depth")
     depth = np.loadtxt(str(path))
     depth = depth.reshape(image.shape[:2])
-    return image, depth
-
-
-def approximate_camera_matrix(image_shape):
-    H, W = image_shape[:2]
-    return CameraParameters(focal_length=W, offset=[W/2, H/2])
-
+    return image, depth / 50000.0
 
 camera_parameters = CameraParameters(focal_length=10, offset=0)
 
-current_image, current_depth = load(1)
-next_image, next_depth = load(3)
-current_depth = current_depth
-next_depth = next_depth
-vo = VisualOdometry(camera_parameters,
-                    current_image, current_depth, next_image)
+I0, D0 = load(1)
+I1, D1 = load(3)
+
+vo = VisualOdometry(camera_parameters, I0, D0, I1)
 motion = vo.estimate_motion(n_coarse_to_fine=8)
 
 print("motion")
-print(transformation_matrix(motion))
+print(g)
 
-g = transformation_matrix(-motion)
-estimated_image, mask = warp(camera_parameters, current_image, current_depth, g)
-estimated_image[np.logical_not(mask)] = 0.0
-
-plot(current_image, estimated_image, next_image)
+warped, mask = warp(camera_parameters, I1, D0, g)
+warped[np.logical_not(mask)] = 0.0
+plot(I0, warped, I1)
