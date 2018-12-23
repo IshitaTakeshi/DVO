@@ -15,12 +15,7 @@ from motion_estimation.jacobian import (
         calc_image_gradient)
 
 
-def stack(K):
-    return K[:3].flatten()
-
-
 def test_jacobian_rigid_motion():
-
     g = np.array([
          [2, 3, 4, 5],
          [6, 7, 8, 9],
@@ -47,9 +42,12 @@ def test_jacobian_rigid_motion():
 
     assert_array_equal(MG, GT)
 
-    k = [1, 2, 3, 4, 5, 6]
-    K = hat(k)[:3]
-    assert_array_equal(stack(np.dot(K, g)), np.dot(MG, k))
+    k = np.array([1, 2, 3, 4, 5, 6])
+    K = hat(k)
+    assert_array_equal(
+        np.dot(K, g)[:3],
+        np.dot(MG, k).reshape(3, 4)
+    )
 
 
 def test_jacobian_transform():
@@ -74,8 +72,14 @@ def test_jacobian_transform():
 
     JP = jacobian_transform(P)
 
-    assert_array_almost_equal(np.dot(JP[0], stack(g[:3])), transform(g, P[0]))
-    assert_array_almost_equal(np.dot(JP[1], stack(g[:3])), transform(g, P[1]))
+    assert_array_almost_equal(
+        np.dot(JP[0], g[:3].flatten()),
+        transform(g, P[0])
+    )
+    assert_array_almost_equal(
+        np.dot(JP[1], g[:3].flatten()),
+        transform(g, P[1])
+    )
 
 
 def test_jacobian_projections():
