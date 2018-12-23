@@ -1,6 +1,8 @@
 import numpy as np
 
-
+# Kerl, Christian.
+# "Odometry from rgb-d cameras for autonomous quadrocopters."
+# Master's Thesis, Technical University (2012).
 
 def jacobian_transform(P):
     """
@@ -39,7 +41,6 @@ def jacobian_transform(P):
 
     n_3dpoints = P.shape[0]
     J = np.zeros((n_3dpoints, 3, 12))
-
     J[:, 0, 0:3] = J[:, 1, 4:7] = J[:, 2, 8:11] = P
     J[:, [0, 1, 2], [3, 7, 11]] = 1
     return J
