@@ -10,9 +10,6 @@ def jacobian_transform(P):
     .. math::
         \\begin{align}
             RP + T
-            &= \\begin{bmatrix}
-                xI & yI & zI & I
-            \\end{bmatrix}
             \cdot
             vec(g) \\\\
             &= \\begin{bmatrix}
@@ -21,10 +18,9 @@ def jacobian_transform(P):
                 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & x & y & z & 1 \\\\
             \\end{bmatrix}
             \\begin{bmatrix}
-                r_{11} \\\\ r_{21} \\\\ r_{31} \\\\
-                r_{12} \\\\ r_{22} \\\\ r_{32} \\\\
-                r_{13} \\\\ r_{23} \\\\ r_{33} \\\\
-                t_{1} \\\\ t_{2} \\\\ t_{3}
+                r_{11} \\\\ r_{12} \\\\ r_{13} \\\\ t_{1} \\\\
+                r_{21} \\\\ r_{22} \\\\ r_{23} \\\\ t_{2} \\\\
+                r_{31} \\\\ r_{32} \\\\ r_{33} \\\\ t_{3}
             \\end{bmatrix}
         \\end{align}
 
@@ -139,7 +135,7 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
             &= \\begin{bmatrix}
                 \\frac{f_{x}}{G_{3}} &
                 0 &
-                -\\frac{f_{x} G_{1}  \\\\
+                -\\frac{f_{x} G_{1}}{G_{3}^2}  \\\\
                 0 &
                 \\frac{f_{y}}{G_{3}} &
                 -\\frac{f_{y} G_{2}}{G_{3}^2}
@@ -165,10 +161,10 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
 
     J[:, 0, 0] = fx
     J[:, 0, 1] = 0
-    J[:, 0, 2] = -(fx * G[:, 0]) / Z
+    J[:, 0, 2] = -fx * G[:, 0] / Z
     J[:, 1, 0] = 0
     J[:, 1, 1] = fy
-    J[:, 1, 2] = -G[:, 1] * fy / Z
+    J[:, 1, 2] = -fy * G[:, 1] / Z
     J = J / Z.reshape(Z.shape[0], 1, 1)
     return J
 
@@ -176,7 +172,7 @@ def jacobian_projections(camera_parameters, G, epsilon=1e-4):
 def calc_image_gradient(image):
     """
     Return image gradient `D` of shape (n_image_pixels, 2)
-    that :code:`D[y * width + y]` stores the gradient at (x, y)
+    that :code:`D[y * width + x]` stores the gradient at (x, y)
     """
 
     dy, dx = np.gradient(image)
