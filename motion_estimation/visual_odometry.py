@@ -116,11 +116,9 @@ class VisualOdometry(object):
         y = y[mask.flatten()]
         J = J[mask.flatten()]
 
-        if np.isnan(y).any():
-            raise ValueError()
-
-        if np.isnan(J).any():
-            raise ValueError()
+        # NOTE these asserts should be slow
+        assert(not np.isnan(y).any())
+        assert(not np.isnan(J).any())
 
         xi, residuals, rank, singular = np.linalg.lstsq(J, -y, rcond=None)
         return xi
