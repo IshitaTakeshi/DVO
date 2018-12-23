@@ -20,20 +20,23 @@ def test_inverse_projection():
         [1, 1],
         [1, 2],
     ])
-    depth = np.array([1, 2, 0, 1, 2, 3])
+    depth = np.array([1, 2, 2, 1, 2, 3])
 
     S = inverse_projection(camera_parameters, P, depth)
 
     GT = np.array([
         [(0+1)*1 / 2, (0-2)*1 / 2, 1],
         [(0+1)*2 / 2, (1-2)*2 / 2, 2],
-        [(0+1)*0 / 2, (2-2)*0 / 2, 0],
+        [(0+1)*2 / 2, (2-2)*2 / 2, 2],
         [(1+1)*1 / 2, (0-2)*1 / 2, 1],
         [(1+1)*2 / 2, (1-2)*2 / 2, 2],
         [(1+1)*3 / 2, (2-2)*3 / 2, 3]
     ])
 
     assert_array_equal(S, GT)
+
+    # is really the inverse
+    assert_array_equal(P, projection(camera_parameters, S))
 
 
 def test_projection():
@@ -47,8 +50,8 @@ def test_projection():
     P = projection(camera_parameters, S)
 
     GT = np.array([
-        [1 * 12 / 3  - 3, 2 * 16 / 3 - 4],
-        [4 * 12 / 2  - 3, 5 * 16 / 2 - 4]
+        [1 *12 / 3 - 3, 2 * 16 / 3 - 4],
+        [4 *12 / 2 - 3, 5 * 16 / 2 - 4]
     ])
 
     assert_array_almost_equal(P, GT)

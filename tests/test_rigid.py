@@ -10,17 +10,28 @@ from motion_estimation.rigid import transform, transformation_matrix
 
 
 def test_transform():
+    P = np.array([1, 3, 2])
+
     g = np.array([
         [0, 0, -1, 0],
         [-1, 0, 0, -1],
         [0, -1, 0, 2],
         [0, 0, 0, 1]
     ])
-    P = np.array([1, 3, 2])
-    assert_array_equal(transform(g, P), np.array([-2, -2, -1]))
+    GT = np.array([-2, -2, -1])
+    assert_array_equal(transform(g, P), GT)
 
     g = np.eye(4)
     assert_array_equal(transform(g, P), P)
+
+    g = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 1],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
+    GT = np.array([1, 4, 2])
+    assert_array_equal(transform(g, P), GT)
 
 
 def test_transformation_matrix():
