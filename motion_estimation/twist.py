@@ -2,6 +2,8 @@ import numpy as np
 
 
 def cross_product_matrix(k):
+    assert(k.shape[0] == 3)
+
     return np.array([
         [0, -k[2], k[1]],
         [k[2], 0, -k[0]],
