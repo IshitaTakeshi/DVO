@@ -6,8 +6,7 @@ from skimage.transform import resize
 from motion_estimation.rigid import transformation_matrix
 from motion_estimation.coordinates import compute_pixel_coordinates
 from motion_estimation.projection import inverse_projection, warp
-from motion_estimation.jacobian import (calc_image_gradient,
-    jacobian_rigid_motion, jacobian_transform, jacobian_projections)
+from motion_estimation.jacobian import calc_image_gradient
 from motion_estimation.rigid import transform
 
 
@@ -26,53 +25,6 @@ def compute_weights(r, nu=5, n_iter=10):
         variance = np.mean(s * (nu + 1) / (nu + s / variance))
 
     return np.sqrt((nu + 1) / (nu + s / variance));
-
-
-def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
-    """
-    Calculate C(x, t)
-    """
-
-    pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
-
-    # S.shape = (n_image_pixels, 3)
-    S = inverse_projection(
-        camera_parameters,
-        pixel_coordinates,
-        depth_map.flatten()
-    )
-
-    # G.shape = (n_image_pixels, 3)
-    G = transform(g, S)
-
-    # M.shape = (12, n_pose_parameters)
-    # convert xi -> d stack(g)
-    M = jacobian_rigid_motion(g)  # M * xi = d(stack(g)) / dt
-
-    # U.shape = (n_image_pixels, 3, 12)
-    # convert d stack(g) -> dG
-    U = jacobian_transform(S)  # dG / d(stack(g))
-
-    # V.shape = (n_image_pixels, 2, 3)
-    # convert dG -> dpi
-    V = jacobian_projections(camera_parameters, G)
-
-    # W.shape = (n_image_pixels, 2)
-    # convert dpi -> dI
-    W = image_gradient
-
-    # J.shape = (n_image_pixels, 3, n_pose_parameters)
-    # convert xi -> dG
-    J = np.tensordot(U, M, axes=(2, 0))
-
-    # J.shape = (n_image_pixels, 2, n_pose_parameters)
-    # convert xi -> dpi
-    J = np.einsum('ijk,ikl->ijl', V, J)
-
-    # J.shape = (n_image_pixels, n_pose_parameters)
-    J = np.einsum('ij,ijk->ik', W, J)
-
-    return J
 
 
 # TODO Add docstring and tests
@@ -111,7 +63,9 @@ def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
 
     # image_gradient.shape == (n_image_pixels, 2)
     # JW.shape == (n_image_pixels, 2, 6)
-    return np.einsum('ij,ijk->ik', image_gradient, JW)
+    J = np.einsum('ij,ijk->ik', image_gradient, JW)
+    # J.shape == (n_image_pixels, 6)
+    return J
 
 
 class VisualOdometry(object):
