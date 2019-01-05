@@ -4,27 +4,14 @@ from skimage.io import imread
 from skimage.transform import resize
 
 from motion_estimation.rigid import transformation_matrix
-from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import inverse_projection, warp
-from motion_estimation.jacobian import calc_image_gradient
-from motion_estimation.rigid import transform
+from motion_estimation.projection import warp
+from motion_estimation.jacobian import calc_image_gradient, calc_warping_jacobian
+from motion_estimation.weights import compute_weights_turkey
 
 
 n_pose_parameters = 6
 
 
-def compute_weights(r, nu=5, n_iter=10):
-    # Kerl Christian, Jürgen Sturm, and Daniel Cremers.
-    # "Robust odometry  estimation for RGB-D cameras."
-    # Robotics and Automation (ICRA)
-
-    s = np.power(r, 2)
-
-    variance = 1.0
-    for i in range(n_iter):
-        variance = np.mean(s * (nu + 1) / (nu + s / variance))
-
-    return np.sqrt((nu + 1) / (nu + s / variance));
 
 
 
