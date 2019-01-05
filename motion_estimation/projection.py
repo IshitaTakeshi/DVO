@@ -28,7 +28,7 @@ def inverse_projection(camera_parameters, pixel_coordinates, depth):
     focal_length = camera_parameters.focal_length
 
     P = pixel_coordinates - offset
-    P = (P.T * depth).T
+    P = (P.T * depth).T  # FIXME ugly
     P = P / focal_length
     return np.vstack((P.T, depth)).T
 
@@ -52,7 +52,7 @@ def projection(camera_parameters, G):
     return G[:, 0:2] * focal_length / Z + offset
 
 
-def reprojection(camera_parameters, depth_map, g):
+def reprojection(camera_parameters, depth_map, G):
     # 'reprojection' transforms I0 coordinates to corresponding coordinates in I1
 
     # 'P' has pixel coordinates in I1 coordinate system, but each pixel
@@ -61,8 +61,7 @@ def reprojection(camera_parameters, depth_map, g):
     P = compute_pixel_coordinates(depth_map.shape)
 
     S = inverse_projection(camera_parameters, P, depth_map.flatten())
-    G = transform(g, S)
-    Q = projection(camera_parameters, G)
+    Q = projection(camera_parameters, transform(G, S))
 
     mask = compute_mask(depth_map, Q)
 
@@ -84,7 +83,7 @@ def reprojection(camera_parameters, depth_map, g):
     return Q, mask
 
 
-def warp(camera_parameters, I1, D0, g):
+def warp(camera_parameters, I1, D0, G):
     # this function samples pixels in I1 and project them to
     # I0 coordinate system
 
@@ -96,10 +95,10 @@ def warp(camera_parameters, I1, D0, g):
     # Therefore image pixels sampled by 'P' represents I1 transformed into
     # I0 coordinate system
 
-    # 'g' describes the transformation from I0 coordinate system to
+    # 'G' describes the transformation from I0 coordinate system to
     # I1 coordinate system
 
-    P, mask = reprojection(camera_parameters, D0, g)
+    P, mask = reprojection(camera_parameters, D0, G)
 
     # Because 'map_coordinates' requires indices of
     # [row, column] order, the 2nd axis have to be reversed
