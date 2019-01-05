@@ -12,8 +12,17 @@ from motion_estimation.weights import compute_weights_tukey
 n_pose_parameters = 6
 
 
+def calc_error(r, weights=None):
+    if weights is None:
+        return np.dot(r, r)
+    return np.dot(r * weights, r)  # r * W * r
 
 
+def solve_linear_equation(J, r, weights):
+    # (J^T * W * J)^{-1} * J^T * W * r
+    JW = J.T * weights
+    L = JW.dot(J)  # L = J.T * W * J
+    return np.linalg.inv(L).dot(JW).dot(r)
 
 
 class VisualOdometry(object):
