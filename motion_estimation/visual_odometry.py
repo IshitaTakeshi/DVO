@@ -27,45 +27,6 @@ def compute_weights(r, nu=5, n_iter=10):
     return np.sqrt((nu + 1) / (nu + s / variance));
 
 
-# TODO Add docstring and tests
-def compute_jacobian(camera_parameters, image_gradient, depth_map, g):
-    fx, fy = camera_parameters.focal_length
-
-    pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
-    S = inverse_projection(
-        camera_parameters,
-        pixel_coordinates,
-        depth_map.flatten()
-    )
-
-    G = transform(g, S)
-
-    x, y, z = G[:, 0], G[:, 1], G[:, 2]
-
-    z_squared = np.power(z, 2)
-    a = x * y / z_squared
-
-    JW = np.empty((G.shape[0], 2, 6))
-
-    JW[:, 0, 0] = +fx / z
-    JW[:, 0, 1] = 0
-    JW[:, 0, 2] = -fx * x / z_squared
-    JW[:, 0, 3] = -fx * a
-    JW[:, 0, 4] = +fx * (1 + x * x / z_squared)
-    JW[:, 0, 5] = -fx * y / z
-
-    JW[:, 1, 0] = 0
-    JW[:, 1, 1] = +fy / z
-    JW[:, 1, 2] = -fy * y / z_squared
-    JW[:, 1, 3] = -fy * (1 + y * y / z_squared)
-    JW[:, 1, 4] = +fy * a
-    JW[:, 1, 5] = +fy * x / z
-
-    # image_gradient.shape == (n_image_pixels, 2)
-    # JW.shape == (n_image_pixels, 2, 6)
-    J = np.einsum('ij,ijk->ik', image_gradient, JW)
-    # J.shape == (n_image_pixels, 6)
-    return J
 
 
 class VisualOdometry(object):
