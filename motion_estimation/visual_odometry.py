@@ -6,7 +6,7 @@ from skimage.transform import resize
 from motion_estimation.rigid import transformation_matrix
 from motion_estimation.projection import warp
 from motion_estimation.jacobian import calc_image_gradient, calc_warping_jacobian
-from motion_estimation.weights import compute_weights_turkey
+from motion_estimation.weights import compute_weights_tukey
 
 
 n_pose_parameters = 6
@@ -93,7 +93,7 @@ class VisualOdometry(object):
         # J.shape == (n_image_pixels, 6)
         J = np.einsum('ij,ijk->ik', image_gradient, JW)
 
-        weights = compute_weights_turkey(r)
+        weights = compute_weights_tukey(r)
         # weights = compute_weights_student_t(r)
 
         xi = solve_linear_equation(J, r, weights)
