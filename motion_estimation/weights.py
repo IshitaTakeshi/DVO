@@ -26,7 +26,7 @@ def median_absolute_deviation(x):
     return np.median(np.abs(x - np.median(x)))
 
 
-def compute_weights_turkey(r, b=4.6851):
+def compute_weights_tukey(r, b=4.6851):
     # Equation 4.28 in the paper
     sigma_mad = median_absolute_deviation(r)
     return tukey(r / sigma_mad)
