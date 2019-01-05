@@ -2,25 +2,25 @@ import numpy as np
 from motion_estimation.twist import cross_product_matrix
 
 
-def rodrigues(v):
+def rodrigues(omega):
     I = np.eye(3)
-    theta = np.linalg.norm(v)
+    theta = np.linalg.norm(omega)
 
     if np.isclose(theta, 0):
         return I
 
-    v = v / theta
-    K = cross_product_matrix(v)
+    omega = omega / theta
+    K = cross_product_matrix(omega)
     cos = np.cos(theta)
     sin = np.sin(theta)
-    return I * cos + (1 - cos) * np.outer(v, v) + sin * K
+    return I * cos + (1 - cos) * np.outer(omega, omega) + sin * K
 
 
-def transform(g, P):
+def transform(G, P):
     """
 
     .. math::
-        g = \\begin{bmatrix}
+        G = \\begin{bmatrix}
             R & T \\\\
             \\mathbf{0}^{\\top} & 1 \\\\
         \\end{bmatrix}
@@ -28,8 +28,8 @@ def transform(g, P):
     :math:`RP + T`
     """
 
-    P = np.dot(g[0:3, 0:3], P.T)
-    return P.T + g[0:3, 3]
+    P = np.dot(G[0:3, 0:3], P.T)
+    return P.T + G[0:3, 3]
 
 
 def transformation_matrix(v):
