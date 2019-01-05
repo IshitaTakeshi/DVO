@@ -11,7 +11,13 @@ import numpy as np
 from motion_estimation import VisualOdometry, CameraParameters
 
 
+# dataset format is explained at
+# https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#
+# intrinsic_camera_calibration_of_the_kinect
+
 dataset_root = Path("dataset", "rgbd_dataset_freiburg1_desk")
+depth_factor = 5000
+
 
 def is_comment(row):
     return row[0] == "#"
@@ -64,15 +70,18 @@ class Dataset(object):
             self.depth_timestamps,
             timestamp
         )
-        return rgb_image, depth_image
+        return rgb_image, depth_image / depth_factor
 
 
 def main():
     timestamps, poses = load_groundtruth()
 
     dataset = Dataset()
+    camera_parameters = CameraParameters(
+        focal_length=[525.0, 525.0],
+        offset=[319.5, 239.5]
+    )
 
-    camera_parameters = CameraParameters(10, 0, 0)
 
     I0, D0 = dataset.load(timestamps[1200])
     I0 = rgb2gray(I0)
