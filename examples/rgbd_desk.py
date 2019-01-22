@@ -9,6 +9,9 @@ from skimage.color import rgb2gray
 import numpy as np
 
 from motion_estimation import VisualOdometry, CameraParameters
+from motion_estimation.projection import warp
+from motion_estimation.quaternion import quaternion_to_rotation
+from visualization.plot import plot
 
 
 # dataset format is explained at
@@ -59,7 +62,7 @@ class Dataset(object):
         path = str(Path(root, filename))
         return imread(path)
 
-    def load(self, timestamp):
+    def load_color(self, timestamp):
         rgb_image = self.load_nearest(
             self.rgb_root,
             self.rgb_timestamps,
@@ -72,6 +75,9 @@ class Dataset(object):
         )
         return rgb_image, depth_image / depth_factor
 
+    def load_gray(self, timestamp):
+        I, D = self.load_color(timestamp)
+        return rgb2gray(I), D
 
 def main():
     timestamps, poses = load_groundtruth()
