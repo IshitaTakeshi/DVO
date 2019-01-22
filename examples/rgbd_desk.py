@@ -79,29 +79,91 @@ class Dataset(object):
         I, D = self.load_color(timestamp)
         return rgb2gray(I), D
 
-def main():
-    timestamps, poses = load_groundtruth()
 
-    dataset = Dataset()
+def error(image_true, image_pred, mask):
+    return np.power(image_true[mask]-image_pred[mask], 2).mean()
+
+
+def pose_to_matrix(pose):
+    R = quaternion_to_rotation(pose[3:])
+    t = pose[:3]
+
+    G = np.empty((4, 4))
+    G[0:3, 0:3] = R
+    G[0:3, 3] = t
+    G[3, 0:3] = 0
+    G[3, 3] = 1
+    return G
+
+
+def main():
+    from visualization.plot import plot
+    from visualization.pose import PoseSequenseVisualizer
+
+    np.set_printoptions(suppress=True, precision=8, linewidth=1e8)
+
     camera_parameters = CameraParameters(
         focal_length=[525.0, 525.0],
         offset=[319.5, 239.5]
     )
 
+    dataset = Dataset()
+    timestamps, poses = load_groundtruth()
+    start = 0
+    end = len(timestamps)
+    step = 100
+    timestamps, poses = timestamps[start:end:step], poses[start:end:step]
 
-    I0, D0 = dataset.load(timestamps[1200])
-    I0 = rgb2gray(I0)
+    sequence_true = []
+    I0, D0 = dataset.load_gray(timestamps[0])
+    G0 = pose_to_matrix(poses[0])
+    for timestamp, pose1 in zip(timestamps[1:], poses[1:]):
+        I1, D1 = dataset.load_gray(timestamp)
+        G1 = pose_to_matrix(pose1)
+        DG = np.dot(np.linalg.inv(G0), G1)
+        # sequence_true.append(G)
 
-    I1, D1 = dataset.load(timestamps[1244])
-    I1 = rgb2gray(I1)
+        estimated, mask = warp(camera_parameters, I1, D0, DG)
 
-    print("Images are same: {}".format((I0 == I1).all()))
+        if (I1 - I0).sum() > 0:
+            print("error(I0, estimated): {}".format(error(I0, estimated, mask)))
+            print("error(I1, estimated): {}".format(error(I1, estimated, mask)))
+            print("error(I1, I0)       : {}".format(error(I1, I0, mask)))
+            print("")
 
-    vo = VisualOdometry(camera_parameters, I0, D0, I1)
+        G0 = G1
+        I0, D0 = I1, D1
 
-    # I0, D0 = I1, D1
+    exit(0)
 
-    motion = vo.estimate_motion(n_coarse_to_fine=1)
-    print(motion)
+    sequence_pred = []
+    G = np.eye(4)
+    I0, D0 = dataset.load_gray(timestamps[0])
+    for timestamp in timestamps[1:]:
+        I1, D1 = dataset.load_gray(timestamp)
+
+        vo = VisualOdometry(camera_parameters, I0, D0, I1)
+        DG = vo.estimate_motion(n_coarse_to_fine=6)
+
+        print("DG")
+        print(DG)
+
+        estimated, mask = warp(camera_parameters, I1, D0, DG)
+
+        print("error(I0, estimated): {}".format(error(I0, estimated, mask)))
+        print("error(I1, estimated): {}".format(error(I1, estimated, mask)))
+        print("error(I1, I0)       : {}".format(error(I1, I0, mask)))
+        if error(I0, estimated, mask) < error(I1, estimated, mask):
+            plot(I0, estimated, I1)
+
+        G = np.dot(G, DG)
+        sequence_pred.append(G)
+        I0, D0 = I1, D1
+
+    # sequence_visualizer = PoseSequenseVisualizer(
+    #     (sequence_true, sequence_pred)
+    # )
+    # sequence_visualizer.show()
+
 
 main()
