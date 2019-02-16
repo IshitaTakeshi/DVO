@@ -4,10 +4,14 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
+from numpy.linalg import norm
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 
-from motion_estimation.rigid import transform, transformation_matrix, rodrigues
+from scipy.linalg import expm
+
+from motion_estimation.rigid import (exp_so3, exp_se3, log_so3, log_se3,
+                                     tangent_so3, tangent_se3, transform)
 
 
 def test_transform():
@@ -35,97 +39,74 @@ def test_transform():
     assert_array_equal(transform(g, P), GT)
 
 
-def test_rodrigues():
+def test_tangent_so3():
     GT = np.array([
-        [1,  0,  0],
-        [0,  0, -1],
-        [0,  1,  0]
+        [0, -3, 2],
+        [3, 0, -1],
+        [-2, 1, 0]
     ])
-    assert_array_almost_equal(rodrigues([np.pi / 2, 0, 0]), GT)
+    assert_array_equal(tangent_so3([1, 2, 3]), GT)
 
+
+def test_tangent_se3():
     GT = np.array([
-        [1 / np.sqrt(2), 0, 1 / np.sqrt(2)],
-        [0, 1, 0],
-        [-1 / np.sqrt(2), 0, 1 / np.sqrt(2)]
+        [0, -6, 5, 1],
+        [6, 0, -4, 2],
+        [-5, 4, 0, 3],
+        [0, 0, 0, 0]
     ])
-    assert_array_almost_equal(rodrigues([0, np.pi / 4, 0]), GT)
-
-    GT = np.array([
-        [1 / np.sqrt(2), 1 / np.sqrt(2), 0],
-        [-1 / np.sqrt(2), 1 / np.sqrt(2), 0],
-        [0, 0, 1]
-    ])
-    assert_array_almost_equal(rodrigues([0, 0, -np.pi / 4]), GT)
+    assert_array_equal(tangent_se3([1, 2, 3, 4, 5, 6]), GT)
 
 
-def test_transformation_matrix():
-    # Case 1: Smoke test
+def test_exp_so3():
+    def run(omega):
+        assert_array_almost_equal(
+            exp_so3(omega),
+            expm(tangent_so3(omega))
+        )
 
-    v = np.array([-1, 3, 2])
-    omega = np.array([np.pi / 2, 0, 0])
-    xi = np.concatenate([v, omega])
-
-    G = transformation_matrix(xi)
-
-    R = np.array([
-        [1,  0,  0],
-        [0,  0, -1],
-        [0,  1,  0]
-    ])
-
-    assert_array_almost_equal(G[0:3, 0:3], R)
-
-    # in this case theta == np.pi / 2
-
-    K = np.array([
-        [0, 0, 0],
-        [0, 0, -np.pi / 2],
-        [0, np.pi / 2, 0]
-    ])
-
-    I = np.eye(3)
-    B = 4 / np.power(np.pi, 2) * K
-    C = (4 / np.power(np.pi, 2) - 8 / np.power(np.pi, 3)) * np.dot(K, K)
-    V = I + B + C
-    assert_array_almost_equal(G[0:3, 3], np.dot(V, v))
-
-    assert_array_almost_equal(G[3], np.array([0, 0, 0, 1]))
-
-    # Case 2: When theta is very small
-    # Check that the translation part calculated by the approximated form
-    # is close to the result from the result of the usual calculation
-
-    epsilon = np.pi * 1e-7  # very small value
-
-    v = np.array([-1, 3, 2])
-    omega = np.array([epsilon, 0, 0])
-
-    xi = np.concatenate([v, omega])
-    G = transformation_matrix(xi)
-
-    K = np.array([
-        [0, 0, 0],
-        [0, 0, -epsilon],
-        [0, epsilon, 0]
-    ])
-    theta = epsilon
-    V = (I + (1 - np.cos(theta)) / np.power(theta, 2) * K +
-         (theta - np.sin(theta)) / np.power(theta, 3) * np.dot(K, K))
-    assert_array_almost_equal(G[0:3, 3], np.dot(V, v), decimal=7)
-
-    # Case 3: theta == 0
-    xi = np.array([-1, 3, 2, 0, 0, 0])
-    G = transformation_matrix(xi)
-    GT = np.array([
-        [1, 0, 0, -1],
-        [0, 1, 0, 3],
-        [0, 0, 1, 2],
-        [0, 0, 0, 1]
-    ])
-
-    assert_array_equal(G, GT)
+    run([0, 0, 0])
+    run(np.array([1, -1, 0]) * np.pi)
+    run(np.array([-1 / 2, 1 / 4, -3 / 4])  * np.pi)
 
 
-test_rodrigues()
+def test_exp_se3():
+    def run(xi):
+        assert_array_almost_equal(
+            exp_se3(xi),
+            expm(tangent_se3(xi))
+        )
+
+    run(np.array([1, 2, -3, 0, 0, 0]))
+    run(np.array([1, -1, 2, np.pi / 2, 0, 0]))
+    run(np.array([-1, 2, 1, 0, -np.pi / 2, np.pi / 4]))
+
+
+def test_log_so3():
+    def run(omega):
+        # test log(exp(omega)) == omega
+        omega_pred, theta_pred = log_so3(expm(tangent_so3(omega)))
+        assert_array_almost_equal(omega_pred * theta_pred, omega)
+
+    run([0, 0, 0])
+    run(np.array([1 / 2, 0, -1 / 4]) * np.pi)
+    run(np.array([-1 / 2, 1 / 4, -3 / 4])  * np.pi)
+
+
+def test_log_se3():
+    def run(xi):
+        # test log(exp(xi)) == xi
+        assert_array_almost_equal(log_se3(expm(tangent_se3(xi))), xi)
+
+    run(np.array([1, 2, -3, 0, 0, 0]))
+    run(np.array([1, -1, 2, np.pi / 2, 0, 0]))
+    run(np.array([-1, 2, 1, 0, -np.pi / 2, np.pi / 4]))
+
+
 test_transform()
-test_transformation_matrix()
+test_tangent_so3()
+test_tangent_se3()
+test_exp_so3()
+test_exp_se3()
+test_log_so3()
+test_log_se3()

@@ -1,28 +1,108 @@
 import numpy as np
-from motion_estimation.twist import cross_product_matrix
-
-# Reference:
-# Eade Ethan. "Lie groups for 2d and 3d transformations."
-# http://ethaneade.com/lie.pdf
-# See Section 3.2 Exponential Map
+from numpy.linalg import norm
 
 
-# threshold to use an approximated form
+# threshold to switch to the approximated form
 epsilon = 1e-6
 
 
-def rodrigues(omega):
+def tangent_so3(omega):
+    assert(len(omega) == 3)
+
+    return np.array([
+        [0, -omega[2], omega[1]],
+        [omega[2], 0, -omega[0]],
+        [-omega[1], omega[0], 0]
+    ])
+
+
+def tangent_se3(xi):
+    v, omega = xi[:3], xi[3:]
+    K = np.empty((4, 4))
+    K[0:3, 0:3] = tangent_so3(omega)
+    K[0:3, 3] = v
+    K[3] = 0
+    return K
+
+
+def normalize(omega):
+    theta = norm(omega)
+    if theta == 0:
+        return np.zeros(3), 0
+    return omega / theta, theta
+
+
+def exp_so3(omega):
     I = np.eye(3)
-    theta = np.linalg.norm(omega)
+
+    omega, theta = normalize(omega)
 
     if theta < epsilon:  # since theta = norm(omega) >= 0
         return I
 
-    omega = omega / theta
-    K = cross_product_matrix(omega)
+    K = tangent_so3(omega)
     cos = np.cos(theta)
     sin = np.sin(theta)
     return I * cos + (1 - cos) * np.outer(omega, omega) + sin * K
+
+
+def exp_se3(xi):
+    v, omega = xi[:3], xi[3:]
+
+    I = np.eye(3)
+    R = exp_so3(omega)
+
+    omega, theta = normalize(omega)
+    K = tangent_so3(omega)
+
+    if theta < epsilon:  # since theta = norm(omega) >= 0
+        V = I
+    else:
+        V = (I + (1 - np.cos(theta)) / theta * K +
+             (theta - np.sin(theta)) / theta * np.dot(K, K))
+
+    G = np.empty((4, 4))
+    G[0:3, 0:3] = R
+    G[0:3, 3] = np.dot(V, v)
+    G[3, 0:3] = 0
+    G[3, 3] = 1
+    return G
+
+
+def log_so3(R):
+    theta = np.arccos((np.trace(R) - 1) / 2)
+    if theta == 0:
+        return np.zeros(3), theta
+
+    omega = np.array([
+        R[2, 1] - R[1, 2],
+        R[0, 2] - R[2, 0],
+        R[1, 0] - R[0, 1]
+    ]) / (2 * np.sin(theta))
+    return omega, theta
+
+
+def log_se3(G):
+    # Gallier, Jean, and Dianna Xu. "Computing exponentials of skew-symmetric
+    # matrices and logarithms of orthogonal matrices." International Journal of
+    # Robotics and Automation 18.1 (2003): 10-20.
+
+    R = G[0:3, 0:3]
+    t = G[0:3, 3]
+
+    omega, theta = log_so3(R)
+
+    if theta == 0:
+        # v == t if theta == 0
+        return np.concatenate((t, omega * theta))
+
+    K = tangent_so3(omega)
+    I = np.eye(3)
+    alpha = -theta / 2
+    beta = 1 - theta * np.sin(theta) / (2 * (1 - np.cos(theta)))
+    V_inv = I + alpha * K + beta * np.dot(K, K)
+    v = V_inv.dot(t)
+    return np.concatenate((v, omega * theta))
 
 
 def transform(G, P):
@@ -39,30 +119,3 @@ def transform(G, P):
 
     P = np.dot(G[0:3, 0:3], P.T)
     return P.T + G[0:3, 3]
-
-
-def transformation_matrix(xi):
-    v, omega = xi[:3], xi[3:]
-
-    K = cross_product_matrix(omega)
-    I = np.eye(3)
-    R = rodrigues(omega)
-
-    theta2 = np.dot(omega, omega)
-    theta = np.sqrt(theta2)
-
-    if theta < epsilon:  # since theta = norm(omega) >= 0
-        # teylor expansion of V
-        V = I + K / 2.0 + np.dot(K, K) / 6.0
-    else:
-        theta3 = theta2 * theta
-        V = (I + (1 - np.cos(theta)) / theta2 * K +
-             (theta - np.sin(theta)) / theta3 * np.dot(K, K))
-
-    G = np.empty((4, 4))
-    G[0:3, 0:3] = R
-    G[0:3, 3] = np.dot(V, v)
-    # G[0:3, 3] = np.dot(I-R, K.dot(v)) + np.outer(omega, omega).dot(v) * theta
-    G[3, 0:3] = 0
-    G[3, 3] = 1
-    return G
