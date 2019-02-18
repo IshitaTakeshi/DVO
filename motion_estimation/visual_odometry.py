@@ -3,7 +3,7 @@ import numpy as np
 from skimage.io import imread
 from skimage.transform import resize
 
-from motion_estimation.rigid import transformation_matrix
+from motion_estimation.rigid import exp_se3
 from motion_estimation.projection import warp
 from motion_estimation.jacobian import calc_image_gradient, calc_warping_jacobian
 from motion_estimation.weights import compute_weights_tukey
