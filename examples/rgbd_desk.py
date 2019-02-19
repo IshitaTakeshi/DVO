@@ -4,16 +4,15 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from skimage.io import imread
-from skimage.color import rgb2gray
-from skimage import img_as_ubyte
 import numpy as np
+from tqdm import tqdm
 
 from motion_estimation import VisualOdometry, CameraParameters
 from motion_estimation.rigid import exp_se3, log_se3
 from motion_estimation.projection import warp
 from motion_estimation.quaternion import quaternion_to_rotation
 from visualization.plot import plot
+from tum_dataset import export_pose_sequence, TUMDataset
 
 
 # dataset format is explained at
@@ -26,89 +25,8 @@ dataset_root = Path("dataset", "rgbd_dataset_freiburg1_desk")
 depth_factor = 5000
 
 
-def is_comment(row):
-    return row[0] == "#"
-
-
-def load_groundtruth():
-    path = str(Path(dataset_root, "groundtruth.txt"))
-    data = np.loadtxt(path)
-    timestamps = data[:, 0]
-    poses = data[:, 1:]
-    return timestamps, poses
-
-
-class Dataset(object):
-    def __init__(self):
-        self.rgb_root = Path(dataset_root, "rgb")
-        self.depth_root = Path(dataset_root, "depth")
-        self.rgb_timestamps = self.load_timestamps(self.rgb_root)
-        self.depth_timestamps = self.load_timestamps(self.depth_root)
-
-    def filename_to_timestamp(self, filename):
-        return float(filename.replace(".png", ""))
-
-    def timestamp_to_filename(self, timestamp):
-        return "{:.6f}.png".format(timestamp)
-
-    def load_timestamps(self, directory):
-        filenames = [p.name for p in directory.glob("*.png")]
-        timestamps = [self.filename_to_timestamp(f) for f in filenames]
-        return np.sort(timestamps)
-
-    def search_nearest_timestamp(self, timestamps, query):
-        index = np.searchsorted(timestamps, query)
-        try:
-            return timestamps[index]
-        except IndexError:
-            # FIXME is this a good solution?
-            return timestamps[index-1]
-
-    def load_nearest(self, root, timestamps, query):
-        nearest = self.search_nearest_timestamp(timestamps, query)
-        filename = self.timestamp_to_filename(nearest)
-        path = str(Path(root, filename))
-        return imread(path)
-
-    def load_color(self, timestamp):
-        rgb_image = self.load_nearest(
-            self.rgb_root,
-            self.rgb_timestamps,
-            timestamp
-        )
-        depth_image = self.load_nearest(
-            self.depth_root,
-            self.depth_timestamps,
-            timestamp
-        )
-        return rgb_image, depth_image / depth_factor
-
-    def load_gray(self, timestamp):
-        I, D = self.load_color(timestamp)
-        return rgb2gray(I), D
-
-
 def error(image_true, image_pred, mask):
     return np.power(image_true[mask]-image_pred[mask], 2).mean()
-
-
-def pose_to_matrix(pose):
-    x, y, z, w = pose[3:]  # because of the TUM dataset format
-    R = quaternion_to_rotation(np.array([w, x, y, z]))
-    t = pose[:3]
-
-    G = np.empty((4, 4))
-    G[0:3, 0:3] = R
-    G[0:3, 3] = t
-    G[3, 0:3] = 0
-    G[3, 3] = 1
-    return G
-
-
-def generate_true_sequence(poses):
-    G0 = pose_to_matrix(poses[0])
-    G0_inv = np.linalg.inv(G0)
-    return [np.dot(G0_inv, pose_to_matrix(pose)) for pose in poses[1:]]
 
 
 def visualize_error_function(camera_parameters, I0, I1, D0, xi_pred):
@@ -155,51 +73,27 @@ def main():
         offset=[319.5, 239.5]
     )
 
-    dataset = Dataset()
-    timestamps, poses = load_groundtruth()
-    start = 800
-    end = len(timestamps)
-    step = 5
-    timestamps, poses = timestamps[start:end:step], poses[start:end:step]
+    dataset = TUMDataset(dataset_root, depth_factor)
 
-    sequence_true = generate_true_sequence(poses)
+    sequence_pred = {}
 
-    sequence_pred = []
     G = np.eye(4)
-    I0, D0 = dataset.load_gray(timestamps[0])
-    for timestamp in timestamps[1:]:
-        I1, D1 = dataset.load_gray(timestamp)
+    frame0 = dataset.load_gray(0)
+    sequence_pred[frame0.timestamp_depth] = G
 
-        vo = VisualOdometry(camera_parameters, I0, D0, I1)
+    for i in tqdm(range(1, dataset.size)):
+        frame1 = dataset.load_gray(i)
+
+        vo = VisualOdometry(camera_parameters,
+                            frame0.image, frame0.depth_map,
+                            frame1.image)
         DG = vo.estimate_motion(n_coarse_to_fine=6)
 
-        print("DG")
-        print(DG)
+        G = np.dot(G, np.linalg.inv(DG))
+        sequence_pred[frame1.timestamp_depth] = G
 
-        estimated, mask = warp(camera_parameters, I1, D0, DG)
-        xi_pred = log_se3(DG)
-        print("error(I0, estimated): {}".format(error(I0, estimated, mask)))
-        print("error(I1, estimated): {}".format(error(I1, estimated, mask)))
-        print("error(I1, I0)       : {}".format(error(I1, I0, mask)))
-        print("xi: {}".format(log_se3(DG)))
-        print("G(xi):\n{}".format(DG))
-        visualize_error_function(camera_parameters, I0, I1, D0, xi_pred)
+        frame0 = frame1
 
-        # if error(I0, estimated, mask) < error(I1, estimated, mask):
-        #     plot(I0, estimated, I1,
-        #         error(I0, estimated, mask),
-        #         error(I1, estimated, mask)
-        #     )
-
-        G = np.dot(G, DG)
-        sequence_pred.append(G)
-
-        I0, D0 = I1, D1
-
-    sequence_visualizer = PoseSequenseVisualizer(
-        (sequence_true, sequence_pred)
-    )
-    sequence_visualizer.show()
-
+    export_pose_sequence("poses.txt", sequence_pred)
 
 main()
