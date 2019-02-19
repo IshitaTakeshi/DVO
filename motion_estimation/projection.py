@@ -28,7 +28,7 @@ def inverse_projection(camera_parameters, pixel_coordinates, depth):
     focal_length = camera_parameters.focal_length
 
     P = pixel_coordinates - offset
-    P = (P.T * depth).T  # FIXME ugly
+    P = (P.T * depth).T
     P = P / focal_length
     return np.vstack((P.T, depth)).T
 
