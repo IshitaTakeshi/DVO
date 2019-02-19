@@ -93,7 +93,8 @@ def error(image_true, image_pred, mask):
 
 
 def pose_to_matrix(pose):
-    R = quaternion_to_rotation(pose[3:])
+    x, y, z, w = pose[3:]  # because of the TUM dataset format
+    R = quaternion_to_rotation(np.array([w, x, y, z]))
     t = pose[:3]
 
     G = np.empty((4, 4))
