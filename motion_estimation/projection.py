@@ -1,7 +1,7 @@
 import numpy as np
 
 from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.rigid import transform
+from motion_estimation.rigid import transform, log_se3
 from motion_estimation.mask import compute_mask
 
 from scipy.ndimage import map_coordinates
@@ -33,12 +33,12 @@ def inverse_projection(camera_parameters, pixel_coordinates, depth):
     return np.vstack((P.T, depth)).T
 
 
-def projection(camera_parameters, G):
+def projection(camera_parameters, P):
     """
-    :math:`\pi(G)` in the paper
+    :math:`\pi(P)` in the paper
 
     .. math::
-        \\pi(G) = \\begin{bmatrix}
+        \\pi(P) = \\begin{bmatrix}
             \\frac{X \\cdot f_x}{Z} + o_x \\\\
             \\frac{Y \\cdot f_y}{Z} + o_y \\\\
             h(\\mathbf{x})
@@ -48,8 +48,8 @@ def projection(camera_parameters, G):
 
     focal_length = camera_parameters.focal_length
     offset = camera_parameters.offset
-    Z = G[:, [2]]
-    return G[:, 0:2] * focal_length / Z + offset
+    Z = P[:, [2]]
+    return P[:, 0:2] * focal_length / Z + offset
 
 
 def reprojection(camera_parameters, depth_map, G):
@@ -59,6 +59,10 @@ def reprojection(camera_parameters, depth_map, G):
     # coordinate is corresponding to the one in I0
 
     P = compute_pixel_coordinates(depth_map.shape)
+
+    if np.allclose(log_se3(G), np.zeros(6)):
+        # if G is identity, return the identical coordinates
+        return P, compute_mask(depth_map, P)
 
     S = inverse_projection(camera_parameters, P, depth_map.flatten())
     Q = projection(camera_parameters, transform(G, S))
