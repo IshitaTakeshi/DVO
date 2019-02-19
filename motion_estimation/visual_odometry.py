@@ -4,9 +4,10 @@ from numpy.linalg import norm
 from skimage.io import imread
 from skimage.transform import resize
 
-from motion_estimation.rigid import exp_se3, log_se3
-from motion_estimation.projection import warp
-from motion_estimation.jacobian import calc_image_gradient, calc_warping_jacobian
+from motion_estimation.rigid import exp_se3, log_se3, transform
+from motion_estimation.coordinates import compute_pixel_coordinates
+from motion_estimation.projection import warp, inverse_projection
+from motion_estimation.jacobian import calc_image_gradient, calc_jacobian
 from motion_estimation.weights import (compute_weights_tukey,
                                        compute_weights_student_t)
 
@@ -79,7 +80,6 @@ class VisualOdometry(object):
 
     def estimate_in_layer(self, I0, D0, I1, G):
         previous_error = np.inf
-
         for k in range(self.max_iter):
             DG, error = self.calc_pose_update(I0, D0, I1, G)
 
@@ -90,31 +90,36 @@ class VisualOdometry(object):
         return G
 
     def calc_pose_update(self, I0, D0, I1, G, min_depth=1e-8):
-        # warp from t0 to t1
-        # 'warped' represents I0 transformed onto the t1 coordinates
-        warped, mask = warp(self.camera_parameters, I1, D0, G)
-
-        r = -(warped[mask] - I0[mask]).flatten()
-
-        # image_gradient.shape == (n_image_pixels, 2)
-        image_gradient = calc_image_gradient(I0)[mask.flatten()]
-
-        from motion_estimation.jacobian import calc_jacobian
-        from motion_estimation.coordinates import compute_pixel_coordinates
-        from motion_estimation.projection import inverse_projection
-
-        P = inverse_projection(
+        S = inverse_projection(
             self.camera_parameters,
-            compute_pixel_coordinates(D0.shape)[mask.flatten()],
-            D0[mask].flatten()
+            compute_pixel_coordinates(D0.shape),
+            D0.flatten()
         )
-        JW = calc_jacobian(self.camera_parameters, P)
+        P = transform(G, S)  # to the t1 coordinates
+        # mask = P[:, 2] > 0
 
-        # JW.shape == (n_image_pixels, 2, 6)
-        # JW = calc_warping_jacobian(self.camera_parameters, D0, G, mask)
+        DX, DY = calc_image_gradient(I1)
+
+        # Transform onto the t0 coordinate
+        # means that
+        # 1. backproject each pixel in the t0 frame to 3D
+        # 2. transform the 3D points to t1 coordinates
+        # 3. reproject the transformed 3D points to the t1 coordinates
+        # 4. interpolate image gradient maps using the reprojected coordinates
+
+        dx_warped, mask = warp(self.camera_parameters, DX, D0, G)
+        dy_warped, mask = warp(self.camera_parameters, DY, D0, G)
 
         # J.shape == (n_image_pixels, 6)
-        J = np.einsum('ij,ijk->ik', image_gradient, JW)
+        J = calc_jacobian(
+            self.camera_parameters,
+            dx_warped[mask].flatten(),  # (n_available_pixels,)
+            dy_warped[mask].flatten(),  # (n_available_pixels,)
+            P[mask.flatten(), :]        # (n_available_pixels, 3)
+        )
+
+        warped, _ = warp(self.camera_parameters, I1, D0, G)
+        r = (warped[mask] - I0[mask]).flatten()
 
         # weights = compute_weights_tukey(r)
         # weights = compute_weights_student_t(r)
