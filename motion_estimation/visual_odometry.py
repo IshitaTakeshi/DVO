@@ -59,6 +59,24 @@ class VisualOdometry(object):
         # if shape[0] * shape[1] < 6 (number of pose parameters)
         return shapes[::-1]
 
+    def estimate_motion(self, n_coarse_to_fine=5,
+                        initial_pose=np.zeros(6)):
+        """Estimate a motion from t1 to t0"""
+
+        G = exp_se3(initial_pose)
+        for shape in self.image_shapes(n_coarse_to_fine)[:-2]:
+            print("shape: {}".format(shape))
+            try:
+                G = self.estimate_in_layer(
+                    resize(self.I0, shape),
+                    resize(self.D0, shape),
+                    resize(self.I1, shape),
+                    G
+                )
+            except np.linalg.linalg.LinAlgError as e:
+                return exp_se3(initial_pose)
+        return G
+
     def estimate_in_layer(self, I0, D0, I1, G):
         previous_error = np.inf
 
@@ -83,24 +101,6 @@ class VisualOdometry(object):
             G = G.dot(DG)
 
             previous_error = current_error
-        return G
-
-    def estimate_motion(self, n_coarse_to_fine=5,
-                        initial_pose=np.zeros(6)):
-        """Estimate a motion from t1 to t0"""
-
-        G = exp_se3(initial_pose)
-        for shape in self.image_shapes(n_coarse_to_fine)[:-2]:
-            print("shape: {}".format(shape))
-            try:
-                G = self.estimate_in_layer(
-                    resize(self.I0, shape),
-                    resize(self.D0, shape),
-                    resize(self.I1, shape),
-                    G
-                )
-            except np.linalg.linalg.LinAlgError as e:
-                return exp_se3(initial_pose)
         return G
 
     def calc_pose_update(self, I0, D0, I1, G, min_depth=1e-8):
