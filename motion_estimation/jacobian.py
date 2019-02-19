@@ -16,10 +16,10 @@ def calc_warping_jacobian(camera_parameters, D, G, mask):
         D[mask].flatten()
     )
     P = transform(G, S)
-    return calc_jacobian_(camera_parameters, P)
+    return calc_jacobian(camera_parameters, P)
 
 
-def calc_jacobian_(camera_parameters, P):
+def calc_jacobian(camera_parameters, P):
     fx, fy = camera_parameters.focal_length
 
     x, y, z = P[:, 0], P[:, 1], P[:, 2]
