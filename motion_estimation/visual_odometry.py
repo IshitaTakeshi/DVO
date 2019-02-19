@@ -1,9 +1,10 @@
 import numpy as np
+from numpy.linalg import norm
 
 from skimage.io import imread
 from skimage.transform import resize
 
-from motion_estimation.rigid import exp_se3
+from motion_estimation.rigid import exp_se3, log_se3
 from motion_estimation.projection import warp
 from motion_estimation.jacobian import calc_image_gradient, calc_warping_jacobian
 from motion_estimation.weights import (compute_weights_tukey,
@@ -32,7 +33,7 @@ def solve_linear_equation(J, r, weights=None):
 
 class VisualOdometry(object):
     def __init__(self, camera_parameters, I0, D0, I1,
-                 epsilon=5e-4, max_iter=200):
+                 epsilon=1e-3, max_iter=200):
         """
         """
 
@@ -65,7 +66,6 @@ class VisualOdometry(object):
 
         G = exp_se3(initial_pose)
         for shape in self.image_shapes(n_coarse_to_fine)[:-2]:
-            print("shape: {}".format(shape))
             try:
                 G = self.estimate_in_layer(
                     resize(self.I0, shape),
@@ -81,26 +81,12 @@ class VisualOdometry(object):
         previous_error = np.inf
 
         for k in range(self.max_iter):
-            DG, current_error = self.calc_pose_update(I0, D0, I1, G)
-            print("k: {:>3d}  error: {:>3.3f}".format(k, current_error))
-            print("DG")
-            print(DG)
+            DG, error = self.calc_pose_update(I0, D0, I1, G)
 
-            if current_error < self.epsilon:
+            if norm(log_se3(DG)) < self.epsilon:
                 break
-
-            if abs(current_error - previous_error) < current_error * 0.01:
-                break
-
-            # if current_error > previous_error:
-            #     break
-
-            # if abs(current_error - previous_error) < self.epsilon:
-            #     break
 
             G = G.dot(DG)
-
-            previous_error = current_error
         return G
 
     def calc_pose_update(self, I0, D0, I1, G, min_depth=1e-8):
