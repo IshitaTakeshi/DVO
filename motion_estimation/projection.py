@@ -48,8 +48,18 @@ def projection(camera_parameters, P):
 
     focal_length = camera_parameters.focal_length
     offset = camera_parameters.offset
-    Z = P[:, [2]]
-    return P[:, 0:2] * focal_length / Z + offset
+
+    Q = np.empty((P.shape[0], 2))
+    Z = P[:, 2]
+
+    # the projected coordinates can be calculated properly if the depth is valid
+    Z_ = Z[Z>0].reshape(-1, 1)  # align the shape with P[Z>0, 0:2]
+    Q[Z>0, 0:2] = P[Z>0, 0:2] * focal_length / Z_ + offset
+
+    # otherwise it is set to nan
+    Q[Z<=0, 0:2] = np.nan
+
+    return Q
 
 
 def reprojection(camera_parameters, depth_map, G):
