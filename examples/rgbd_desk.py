@@ -29,7 +29,7 @@ def error(image_true, image_pred, mask):
     return np.power(image_true[mask]-image_pred[mask], 2).mean()
 
 
-def visualize_error_function(camera_parameters, I0, I1, D0, xi_pred):
+def visualize_error_function(camera_parameters, I0, D0, I1, xi_pred):
     def generate_error_curve(i, start, stop, n):
         xi = np.copy(xi_pred)
 
