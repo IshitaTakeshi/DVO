@@ -55,15 +55,16 @@ def projection(camera_parameters, P):
 
     Q = np.empty((P.shape[0], 2))
     Z = P[:, 2]
+    mask = Z > 0
 
     # the projected coordinates can be calculated properly if the depth is valid
-    Q[Z>0, 0:2] = projection_(
-        P[Z>0, 0:2],
-        Z[Z>0].reshape(-1, 1)
+    Q[mask] = projection_(
+        P[mask, 0:2],
+        Z[mask].reshape(-1, 1)
     )
 
     # otherwise it is set to nan
-    Q[Z<=0, 0:2] = np.nan
+    Q[np.logical_not(mask)] = np.nan
 
     return Q
 
