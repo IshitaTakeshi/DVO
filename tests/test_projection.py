@@ -56,10 +56,23 @@ def test_projection():
 
     assert_array_almost_equal(P, GT)
 
+    # 'inverse_projection' is certainly the inverse of 'projection'
     depth = S[0:2, 2]
     Q = inverse_projection(camera_parameters, P, depth)
-
     assert_array_almost_equal(Q, S)
+
+
+    # In the case Z <= 0, np.nan is returned
+    S = np.array([
+        [1, 2, 0],
+        [4, 5, -1]
+    ])
+    P = projection(camera_parameters, S)
+    GT = np.array([
+        [np.nan, np.nan],
+        [np.nan, np.nan]
+    ])
+    assert_array_equal(P, GT)
 
 
 test_inverse_projection()
