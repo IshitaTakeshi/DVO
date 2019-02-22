@@ -37,13 +37,11 @@ def exp_so3(omega):
 
     omega, theta = normalize(omega)
 
-    if theta < epsilon:  # since theta = norm(omega) >= 0
+    if theta < epsilon:  # becasue theta = norm(omega) >= 0
         return I
 
     K = tangent_so3(omega)
-    cos = np.cos(theta)
-    sin = np.sin(theta)
-    return I * cos + (1 - cos) * np.outer(omega, omega) + sin * K
+    return I + np.sin(theta) * K + (1 - np.cos(theta)) * np.dot(K, K)
 
 
 def exp_se3(xi):
