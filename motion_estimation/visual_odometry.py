@@ -91,7 +91,7 @@ class VisualOdometry(object):
         levels = list(reversed(range(n_coarse_to_fine)))
 
         G = exp_se3(initial_pose)
-        for level in levels[:-2]:
+        for level in levels:
             print("\n")
             print("level: {}".format(level))
             try:
