@@ -34,16 +34,10 @@ def level_to_ratio(level):
     return 1 / pow(2, level)
 
 
-def calc_pose_update(camera_parameters, I0, D0, I1, G, min_depth=1e-8):
-    S = inverse_projection(
-        camera_parameters,
-        compute_pixel_coordinates(D0.shape),
-        D0.flatten()
-    )
-    P = transform(G, S)  # to the t1 coordinates
+def calc_pose_update(camera_parameters, inv_projection,
+                     I0, D0, I1, DX, DY, G, min_depth=1e-8):
+    P = transform(G, inv_projection)  # to the t1 coordinates
     # mask = P[:, 2] > 0
-
-    DX, DY = calc_image_gradient(I1)
 
     # Transform onto the t0 coordinate
     # means that
@@ -65,14 +59,12 @@ def calc_pose_update(camera_parameters, I0, D0, I1, G, min_depth=1e-8):
 
     warped, _ = warp(camera_parameters, I1, D0, G)
     r = -(warped[mask] - I0[mask]).flatten()
-
     # weights = compute_weights_tukey(r)
     # weights = compute_weights_student_t(r)
 
     xi, error = solve_linear_equation(J, r)
     return xi, error
 
-    return DG, error
 
 
 class VisualOdometry(object):
@@ -121,23 +113,32 @@ class VisualOdometry(object):
         return shape * ratio
 
     def estimate_motion_at(self, level, G):
+        camera_parameters = self.camera_parameters_at(level)
         shape = self.image_shape_at(level)
+
         I0 = resize(self.I0, shape)
         D0 = resize(self.D0, shape)
         I1 = resize(self.I1, shape)
 
+        inv_projection = inverse_projection(
+            camera_parameters,
+            compute_pixel_coordinates(shape),
+            D0.flatten()
+        )
+        DX, DY = calc_image_gradient(I1)
+
         for k in range(self.max_iter):
-            DG, error = calc_pose_update(
-                self.camera_parameters_at(level),
-                I0, D0, I1, G
+            dxi, error = calc_pose_update(
+                camera_parameters, inv_projection,
+                I0, D0, I1, DX, DY, G
             )
 
-            xi = log_se3(DG)
-            print("k: {:>4d} norm(xi): {:4.3f}  error: {:4.3f}  xi: {}".format(
-                  k, norm(xi), error, xi))
+            print("k: {:>4d}  shape: {}  norm(dxi): {:4.3f}  error: {:4.3f}  dxi: {}".format(
+                  k, shape, norm(dxi), error, dxi))
 
-            if norm(xi) < self.epsilon:
+            if norm(dxi) < self.epsilon:
                 break
 
+            DG = exp_se3(dxi)
             G = G.dot(DG)
         return G
