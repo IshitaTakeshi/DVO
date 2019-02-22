@@ -23,14 +23,11 @@ def calc_error(r, weights=None):
 
 
 def solve_linear_equation(J, r, weights=None):
-    # (J^T * W * J)^{-1} * J^T * W * r
-    if weights is None:
-        JW = J.T
-    else:
-        JW = J.T * weights
-    L = JW.dot(J)  # L = J.T * W * J
-    K = np.linalg.inv(L)
-    return K.dot(JW).dot(r)
+    if weights is not None:
+        J = J * weights.reshape(-1, 1)
+
+    xi, error, _, _ = np.linalg.lstsq(J, r)
+    return xi, error[0]
 
 
 def level_to_ratio(level):
@@ -71,10 +68,9 @@ def calc_pose_update(camera_parameters, I0, D0, I1, G, min_depth=1e-8):
 
     # weights = compute_weights_tukey(r)
     # weights = compute_weights_student_t(r)
-    xi = solve_linear_equation(J, r, weights=None)
-    DG = exp_se3(xi)
 
-    error = calc_error(r, weights=None)
+    xi, error = solve_linear_equation(J, r)
+    return xi, error
 
     return DG, error
 
