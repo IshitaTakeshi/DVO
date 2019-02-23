@@ -34,9 +34,9 @@ def level_to_ratio(level):
     return 1 / pow(2, level)
 
 
-def calc_pose_update(camera_parameters, inv_projection,
-                     I0, D0, I1, DX, DY, G, min_depth=1e-8):
-    P = transform(G, inv_projection)  # to the t1 coordinates
+def calc_pose_update(camera_parameters,
+                     I0, D0, I1, DX, DY, S, G, min_depth=1e-8):
+    P = transform(G, S)  # to the t1 coordinates
     # mask = P[:, 2] > 0
 
     # Transform onto the t0 coordinate
@@ -120,7 +120,7 @@ class VisualOdometry(object):
         D0 = resize(self.D0, shape)
         I1 = resize(self.I1, shape)
 
-        inv_projection = inverse_projection(
+        S = inverse_projection(
             camera_parameters,
             compute_pixel_coordinates(shape),
             D0.flatten()
@@ -129,8 +129,8 @@ class VisualOdometry(object):
 
         for k in range(self.max_iter):
             dxi, error = calc_pose_update(
-                camera_parameters, inv_projection,
-                I0, D0, I1, DX, DY, G
+                camera_parameters,
+                I0, D0, I1, DX, DY, S, G
             )
 
             print("k: {:>4d}  shape: {}  norm(dxi): {:4.3f}  error: {:4.3f}  dxi: {}".format(
