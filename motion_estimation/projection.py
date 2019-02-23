@@ -72,17 +72,18 @@ def projection(camera_parameters, P):
 def reprojection(camera_parameters, depth_map, G):
     # 'reprojection' transforms I0 coordinates to corresponding coordinates in I1
 
-    # 'P' has pixel coordinates in I1 coordinate system, but each pixel
+    # 'C' has pixel coordinates in I1 coordinate system, but each pixel
     # coordinate is corresponding to the one in I0
 
-    P = compute_pixel_coordinates(depth_map.shape)
+    C = compute_pixel_coordinates(depth_map.shape)
 
     if np.allclose(log_se3(G), np.zeros(6)):
         # if G is identity, return the identical coordinates
-        return P, compute_mask(depth_map, P)
+        return C, compute_mask(depth_map, C)
 
-    S = inverse_projection(camera_parameters, P, depth_map.flatten())
-    Q = projection(camera_parameters, transform(G, S))
+    S = inverse_projection(camera_parameters, C, depth_map.flatten())
+    P = transform(G, S)
+    Q = projection(camera_parameters, P)
 
     mask = compute_mask(depth_map, Q)
 
@@ -111,24 +112,24 @@ def warp(camera_parameters, I1, D0, G):
     # 'reprojection' transforms I0 coordinates to
     # the corresponding coordinates in I1
 
-    # 'P' has pixel coordinates in I1 coordinate system, but each pixel
+    # 'Q' has pixel coordinates in I1 coordinate system, but each pixel
     # coordinate is corresponding to the one in I0
-    # Therefore image pixels sampled by 'P' represents I1 transformed into
+    # Therefore image pixels sampled by 'Q' represents I1 transformed into
     # I0 coordinate system
 
     # 'G' describes the transformation from I0 coordinate system to
     # I1 coordinate system
 
-    P, mask = reprojection(camera_parameters, D0, G)
+    Q, mask = reprojection(camera_parameters, D0, G)
 
     # Because 'map_coordinates' requires indices of
     # [row, column] order, the 2nd axis have to be reversed
     # so that it becomes [y, x]
 
-    P = P[:, [1, 0]].T
+    Q = Q[:, [1, 0]].T
 
     # Here,
-    # P = [
+    # Q = [
     #     [y0 y0... y0 ... yi yi... yi ... ym ym ... ym]
     #     [x0 x1... xn ... x0 x1... xn ... x0 x1 ... xn]
     # ]
@@ -141,7 +142,7 @@ def warp(camera_parameters, I1, D0, G):
     #     I[ym, x0]  I[ym, x1]  ...  I[ym, xn]
     # ]
 
-    warped_image = map_coordinates(I1, P, mode="constant", cval=np.nan)
+    warped_image = map_coordinates(I1, Q, mode="constant", cval=np.nan)
     warped_image = warped_image.reshape(D0.shape)
 
     return warped_image, mask
