@@ -71,7 +71,7 @@ def calc_pose_update(camera_parameters,
 
 class VisualOdometry(object):
     def __init__(self, camera_parameters, I0, D0, I1,
-                 epsilon=1e-3, max_iter=200):
+                 epsilon=1e-4, max_iter=20):
         """
         """
 
