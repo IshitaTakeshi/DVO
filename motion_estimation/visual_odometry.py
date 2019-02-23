@@ -3,11 +3,13 @@ from numpy.linalg import norm
 
 from skimage.io import imread
 from skimage.transform import resize
+from scipy.ndimage import map_coordinates
 
 from motion_estimation.camera import CameraParameters
 from motion_estimation.rigid import exp_se3, log_se3, transform
 from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import warp, inverse_projection
+from motion_estimation.projection import inverse_projection, projection
+from motion_estimation.mask import compute_mask
 from motion_estimation.jacobian import calc_image_gradient, calc_jacobian
 from motion_estimation.weights import (compute_weights_tukey,
                                        compute_weights_student_t)
@@ -36,8 +38,6 @@ def level_to_ratio(level):
 
 def calc_pose_update(camera_parameters,
                      I0, D0, I1, DX, DY, S, G, min_depth=1e-8):
-    P = transform(G, S)  # to the t1 coordinates
-    # mask = P[:, 2] > 0
 
     # Transform onto the t0 coordinate
     # means that
@@ -46,25 +46,27 @@ def calc_pose_update(camera_parameters,
     # 3. reproject the transformed 3D points to the t1 coordinates
     # 4. interpolate image gradient maps using the reprojected coordinates
 
-    dx_warped, mask = warp(camera_parameters, DX, D0, G)
-    dy_warped, mask = warp(camera_parameters, DY, D0, G)
+    P = transform(G, S)  # to the t1 coordinates
+    Q = projection(camera_parameters, P)
+    mask = compute_mask(D0, Q).flatten()
+
+    Q = Q[:, [1, 0]].T
+
+    P = P[mask]
+    I0 = I0.flatten()[mask]  # you don't need to warp I0
+    I1 = map_coordinates(I1, Q, mode="constant", cval=np.nan)[mask]
+    DX = map_coordinates(DX, Q, mode="constant", cval=np.nan)[mask]
+    DY = map_coordinates(DY, Q, mode="constant", cval=np.nan)[mask]
 
     # J.shape == (n_image_pixels, 6)
-    J = calc_jacobian(
-        camera_parameters,
-        dx_warped[mask].flatten(),  # (n_available_pixels,)
-        dy_warped[mask].flatten(),  # (n_available_pixels,)
-        P[mask.flatten(), :]        # (n_available_pixels, 3)
-    )
+    J = calc_jacobian(camera_parameters, DX, DY, P)
 
-    warped, _ = warp(camera_parameters, I1, D0, G)
-    r = -(warped[mask] - I0[mask]).flatten()
+    r = -(I1 - I0)
     # weights = compute_weights_tukey(r)
     # weights = compute_weights_student_t(r)
 
     xi, error = solve_linear_equation(J, r)
     return xi, error
-
 
 
 class VisualOdometry(object):
