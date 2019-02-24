@@ -48,18 +48,19 @@ def calc_jacobian(camera_parameters, P):
 
 def calc_jacobian(camera_parameters, dx, dy, P):
     fx, fy = camera_parameters.focal_length
-    fgx = fx * dx
-    fgy = fy * dy
+    fgx, fgy = fx * dx, fy * dy
 
     x, y, z = P[:, 0], P[:, 1], P[:, 2]
-    z2 = z * z  # element wize z^2
+
+    z2 = z * z  # element wize z * z
+    xy = x * y
 
     J = np.empty((P.shape[0], 6))
     J[:, 0] = fgx / z
     J[:, 1] = fgy / z
     J[:, 2] = -(fgx * x + fgy * y) / z2
-    J[:, 3] = -fgx * x * y / z2 - fgy * (1 + np.power(y / z, 2))
-    J[:, 4] = fgx * (1 + np.power(x / z, 2)) + fgy * x * y / z2
+    J[:, 3] = -fgx * xy / z2 - fgy * (1 + np.power(y / z, 2))
+    J[:, 4] = fgx * (1 + np.power(x / z, 2)) + fgy * xy / z2
     J[:, 5] = (-fgx * y + fgy * x) / z
     return J
 
