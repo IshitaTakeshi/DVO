@@ -9,16 +9,6 @@ from motion_estimation.rigid import transform
 # Master's Thesis, Technical University (2012).
 
 
-def calc_warping_jacobian(camera_parameters, D, G, mask):
-    S = inverse_projection(
-        camera_parameters,
-        compute_pixel_coordinates(D.shape)[mask.flatten()],
-        D[mask].flatten()
-    )
-    P = transform(G, S)
-    return calc_jacobian(camera_parameters, P)
-
-
 def calc_jacobian(camera_parameters, P):
     fx, fy = camera_parameters.focal_length
 
