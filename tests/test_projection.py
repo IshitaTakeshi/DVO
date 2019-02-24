@@ -7,36 +7,35 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 
 from motion_estimation.camera import CameraParameters
+from motion_estimation.coordinates import compute_pixel_coordinates
 from motion_estimation.projection import inverse_projection, projection
 
 
 def test_inverse_projection():
     camera_parameters = CameraParameters(focal_length=[2, 2], offset=[1, -2])
-    P = np.array([
-        [0, 0],
-        [0, 1],
-        [0, 2],
-        [1, 0],
-        [1, 1],
-        [1, 2],
-    ])
-    depth = np.array([1, 2, 2, 1, 2, 3])
+    depth_map = np.array(
+        [[1, 2, 5],
+         [3, 4, 6]]
+    )
 
-    S = inverse_projection(camera_parameters, P, depth)
+    S = inverse_projection(camera_parameters, depth_map)
 
     GT = np.array([
-        [(0-1)*1 / 2, (0+2)*1 / 2, 1],
-        [(0-1)*2 / 2, (1+2)*2 / 2, 2],
-        [(0-1)*2 / 2, (2+2)*2 / 2, 2],
-        [(1-1)*1 / 2, (0+2)*1 / 2, 1],
-        [(1-1)*2 / 2, (1+2)*2 / 2, 2],
-        [(1-1)*3 / 2, (2+2)*3 / 2, 3]
+        [(0-1)*1 / 2, (0+2)*1 / 2, 1],  # 3d point corresponding to (x0, y0)
+        [(1-1)*2 / 2, (0+2)*2 / 2, 2],  # 3d point corresponding to (x0, y0)
+        [(2-1)*5 / 2, (0+2)*5 / 2, 5],  # 3d point corresponding to (x1, y0)
+        [(0-1)*3 / 2, (1+2)*3 / 2, 3],  # 3d point corresponding to (x1, y1)
+        [(1-1)*4 / 2, (1+2)*4 / 2, 4],  # 3d point corresponding to (x2, y1)
+        [(2-1)*6 / 2, (1+2)*6 / 2, 6]   # 3d point corresponding to (x2, y1)
     ])
 
     assert_array_equal(S, GT)
 
     # is really the inverse
-    assert_array_equal(P, projection(camera_parameters, S))
+    assert_array_equal(
+        compute_pixel_coordinates(depth_map.shape),
+        projection(camera_parameters, S)
+    )
 
 
 def test_projection():
@@ -55,12 +54,6 @@ def test_projection():
     ])
 
     assert_array_almost_equal(P, GT)
-
-    # 'inverse_projection' is certainly the inverse of 'projection'
-    depth = S[0:2, 2]
-    Q = inverse_projection(camera_parameters, P, depth)
-    assert_array_almost_equal(Q, S)
-
 
     # In the case Z <= 0, np.nan is returned
     S = np.array([

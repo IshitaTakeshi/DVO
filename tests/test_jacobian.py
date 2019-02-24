@@ -8,12 +8,11 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
 from motion_estimation.camera import CameraParameters
-from motion_estimation.rigid import transformation_matrix, transform
-from motion_estimation.twist import hat
-from motion_estimation.jacobian import calc_jacobian, calc_image_gradient
+from motion_estimation.jacobian import (calc_projection_jacobian,
+                                        calc_image_gradient)
 
 
-def test_jacobian():
+def test_calc_projection_jacobian():
     camera_parameters = CameraParameters(
         focal_length=[3, 2],
         offset=[0, 0]
@@ -24,7 +23,7 @@ def test_jacobian():
         [8, 5, 3],
     ])
 
-    J = calc_jacobian(camera_parameters, P)
+    J = calc_projection_jacobian(camera_parameters, P)
 
     GT = np.array([
         # x' = 1, y' = 6, z' = 2, fx = 3, fy = 2
@@ -38,4 +37,4 @@ def test_jacobian():
     assert_array_equal(J, GT)
 
 
-test_jacobian()
+test_calc_projection_jacobian()
