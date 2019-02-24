@@ -105,22 +105,7 @@ def reprojection(camera_parameters, depth_map, G):
     return Q, mask
 
 
-def warp(camera_parameters, I1, D0, G):
-    # this function samples pixels in I1 and project them to
-    # I0 coordinate system
-
-    # 'reprojection' transforms I0 coordinates to
-    # the corresponding coordinates in I1
-
-    # 'Q' has pixel coordinates in I1 coordinate system, but each pixel
-    # coordinate is corresponding to the one in I0
-    # Therefore image pixels sampled by 'Q' represents I1 transformed into
-    # I0 coordinate system
-
-    # 'G' describes the transformation from I0 coordinate system to
-    # I1 coordinate system
-
-    Q, mask = reprojection(camera_parameters, D0, G)
+def interpolation(I, Q, order=3):
 
     # Because 'map_coordinates' requires indices of
     # [row, column] order, the 2nd axis have to be reversed
@@ -142,7 +127,27 @@ def warp(camera_parameters, I1, D0, G):
     #     I[ym, x0]  I[ym, x1]  ...  I[ym, xn]
     # ]
 
-    warped_image = map_coordinates(I1, Q, mode="constant", cval=np.nan)
+    return map_coordinates(I, Q, mode="constant", cval=np.nan, order=order)
+
+
+def warp(camera_parameters, I1, D0, G):
+    # this function samples pixels in I1 and project them to
+    # I0 coordinate system
+
+    # 'reprojection' transforms I0 coordinates to
+    # the corresponding coordinates in I1
+
+    # 'Q' has pixel coordinates in I1 coordinate system, but each pixel
+    # coordinate is corresponding to the one in I0
+    # Therefore image pixels sampled by 'Q' represents I1 transformed into
+    # I0 coordinate system
+
+    # 'G' describes the transformation from I0 coordinate system to
+    # I1 coordinate system
+
+    Q, mask = reprojection(camera_parameters, D0, G)
+
+    warped_image = interpolation(I1, Q)
     warped_image = warped_image.reshape(D0.shape)
 
     return warped_image, mask

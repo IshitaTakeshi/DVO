@@ -3,12 +3,12 @@ from numpy.linalg import norm
 
 from skimage.io import imread
 from skimage.transform import resize
-from scipy.ndimage import map_coordinates
 
 from motion_estimation.camera import CameraParameters
 from motion_estimation.rigid import exp_se3, log_se3, transform
 from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import inverse_projection, projection
+from motion_estimation.projection import (inverse_projection, projection,
+                                          interpolation)
 from motion_estimation.mask import compute_mask
 from motion_estimation.jacobian import calc_image_gradient, calc_jacobian
 from motion_estimation.weights import (compute_weights_tukey,
@@ -50,13 +50,11 @@ def calc_pose_update(camera_parameters,
     Q = projection(camera_parameters, P)
     mask = compute_mask(D0, Q).flatten()
 
-    Q = Q[:, [1, 0]].T
-
     P = P[mask]
     I0 = I0.flatten()[mask]  # you don't need to warp I0
-    I1 = map_coordinates(I1, Q, mode="constant", cval=np.nan)[mask]
-    DX = map_coordinates(DX, Q, mode="constant", cval=np.nan)[mask]
-    DY = map_coordinates(DY, Q, mode="constant", cval=np.nan)[mask]
+    I1 = interpolation(I1, Q, order=1)[mask]
+    DX = interpolation(DX, Q, order=1)[mask]
+    DY = interpolation(DY, Q, order=1)[mask]
 
     # J.shape == (n_image_pixels, 6)
     J = calc_jacobian(camera_parameters, DX, DY, P)
