@@ -121,11 +121,8 @@ class VisualOdometry(object):
         D0 = resize(self.D0, shape)
         I1 = resize(self.I1, shape)
 
-        S = inverse_projection(
-            camera_parameters,
-            compute_pixel_coordinates(shape),
-            D0.flatten()
-        )
+        S = inverse_projection(camera_parameters, D0)
+
         DX, DY = calc_image_gradient(I1)
 
         for k in range(self.max_iter):

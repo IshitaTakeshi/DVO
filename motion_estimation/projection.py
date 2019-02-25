@@ -7,7 +7,7 @@ from motion_estimation.mask import compute_mask
 from scipy.ndimage import map_coordinates
 
 
-def inverse_projection(camera_parameters, pixel_coordinates, depth):
+def inverse_projection(camera_parameters, depth_map):
     """
     :math:`S(x)` in the paper
 
@@ -20,17 +20,16 @@ def inverse_projection(camera_parameters, pixel_coordinates, depth):
 
     Args:
         camera_parameters (CameraParameters): Camera intrinsic prameters
-        pixel_coordinates: pixel_coordinates of shape (n_image_pixels, 2)
-        depth: Depth array of shape (n_image_pixels,)
+        depth_map: Depth map
     """
 
     offset = camera_parameters.offset
     focal_length = camera_parameters.focal_length
 
-    P = pixel_coordinates - offset
-    P = (P.T * depth).T
-    P = P / focal_length
-    return np.vstack((P.T, depth)).T
+    pixel_coordinates = compute_pixel_coordinates(depth_map.shape)
+    depth = depth_map.reshape(-1, 1)
+    P = (pixel_coordinates - offset) * depth / focal_length
+    return np.hstack((P, depth))
 
 
 def projection(camera_parameters, P):
@@ -43,7 +42,6 @@ def projection(camera_parameters, P):
             \\frac{Y \\cdot f_y}{Z} + o_y \\\\
             h(\\mathbf{x})
         \\end{bmatrix}
-
     """
 
 
@@ -70,39 +68,21 @@ def projection(camera_parameters, P):
 
 
 def reprojection(camera_parameters, depth_map, G):
-    # 'reprojection' transforms I0 coordinates to corresponding coordinates in I1
+    # 'reprojection' transforms I0 coordinates to
+    # corresponding coordinates in I1
 
     # 'C' has pixel coordinates in I1 coordinate system, but each pixel
     # coordinate is corresponding to the one in I0
 
-    C = compute_pixel_coordinates(depth_map.shape)
-
     if np.allclose(log_se3(G), np.zeros(6)):
         # if G is identity, return the identical coordinates
+        C = compute_pixel_coordinates(depth_map.shape)
         return C, compute_mask(depth_map, C)
 
-    S = inverse_projection(camera_parameters, C, depth_map.flatten())
+    S = inverse_projection(camera_parameters, depth_map)
     P = transform(G, S)
     Q = projection(camera_parameters, P)
-
-    mask = compute_mask(depth_map, Q)
-
-    # We need to convert 'mask' to the same format as images for convenience
-
-    # Here, mask is in the format below:
-    # mask = [
-    #     v(x0, y0)  v(x1, y0) ... v(xn, y0)
-    #     v(x0, y1)  v(x1, y1) ... v(xn, y1)
-    #     ...
-    #     v(x0, yj)  v(x1, yj) ... v(xn, yj)
-    #     ...
-    #     v(x0, ym)  v(x1, ym) ... v(xn, ym)
-    # ]
-    # where v(x, y) <- {True, False} is a mask at coordinate (x, y)
-
-    mask = mask.reshape(depth_map.shape)
-
-    return Q, mask
+    return Q, compute_mask(depth_map, Q)
 
 
 def interpolation(I, Q, order=3):
