@@ -1,15 +1,11 @@
 import numpy as np
 
-from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import inverse_projection
-from motion_estimation.rigid import transform
-
 # Kerl, Christian.
 # "Odometry from rgb-d cameras for autonomous quadrocopters."
 # Master's Thesis, Technical University (2012).
 
 
-def calc_jacobian(camera_parameters, P):
+def calc_projection_jacobian(camera_parameters, P):
     fx, fy = camera_parameters.focal_length
 
     x, y, z = P[:, 0], P[:, 1], P[:, 2]
