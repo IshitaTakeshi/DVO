@@ -74,7 +74,7 @@ def main():
         offset=[319.5, 239.5]
     )
 
-    dataset = TUMDataset(dataset_root, depth_factor)
+    dataset = TUMDataset(dataset_root, depth_factor=5000)
 
     sequence_pred = {}
 
