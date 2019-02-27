@@ -9,7 +9,7 @@ addons:
       - "python3"
       - "python3-pip"
 before_install:
-  - sudo pip3 install -U pip3
+  - sudo pip3 install -U pip
 install:
   - sudo pip3 install -r requirements.txt
 script:
