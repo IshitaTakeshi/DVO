@@ -93,8 +93,6 @@ class VisualOdometry(object):
 
         G = exp_se3(initial_pose)
         for level in levels:
-            print("\n")
-            print("level: {}".format(level))
             try:
                 G = self.estimate_motion_at(level, G)
             except np.linalg.linalg.LinAlgError as e:
@@ -131,9 +129,6 @@ class VisualOdometry(object):
                 camera_parameters,
                 I0, D0, I1, DX, DY, S, G
             )
-
-            print("k: {:>4d}  shape: {}  norm(dxi): {:4.3f}  error: {:4.3f}  dxi: {}".format(
-                  k, shape, norm(dxi), error, dxi))
 
             if norm(dxi) < self.epsilon:
                 break
