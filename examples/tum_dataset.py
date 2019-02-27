@@ -74,14 +74,16 @@ class TUMDataset(object):
         return len(self.timestamps_rgb)
 
     def load_color(self, index):
-        path_rgb = str(Path(self.dataset_root, self.paths_rgb[index]))
-        path_depth = str(Path(self.dataset_root, self.paths_depth[index]))
         timestamp_rgb = self.timestamps_rgb[index]
         timestamp_depth = self.timestamps_depth[index]
+
+        path_rgb = str(Path(self.dataset_root, self.paths_rgb[index]))
+        path_depth = str(Path(self.dataset_root, self.paths_depth[index]))
 
         I = imread(path_rgb)
         D = imread(path_depth)
         D = D / self.depth_factor
+
         return Frame(timestamp_rgb, timestamp_depth, I, D)
 
     def load_gray(self, index):
