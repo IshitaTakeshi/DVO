@@ -54,7 +54,7 @@ class TUMDataset(object):
         self.depth_factor = depth_factor
 
     def init(self):
-        path = Path(self.dataset_root, "rgbd_assoc.txt")
+        path = Path(self.dataset_root, "rgbd.txt")
         with open(str(path), "r") as f:
             reader = csv.reader(f, delimiter=' ')
 
