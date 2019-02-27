@@ -31,7 +31,7 @@ def solve_linear_equation(J, r, weights=None):
         # mulitply weights to each row
         J = J * weights.reshape(-1, 1)
 
-    xi, error, _, _ = np.linalg.lstsq(J, r)
+    xi, error, _, _ = np.linalg.lstsq(J, r, rcond=None)
     return xi, error[0]
 
 
