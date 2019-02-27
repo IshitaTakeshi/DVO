@@ -1,8 +1,3 @@
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
 import numpy as np
 from motion_estimation.rigid import exp_so3, tangent_so3
 
