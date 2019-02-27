@@ -21,10 +21,9 @@ from visualization.plot import plot
 # https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#
 # intrinsic_camera_calibration_of_the_kinect
 
-dataset_root = Path("dataset", "rgbd_dataset_freiburg1_desk")
-# dataset_root = Path("dataset", "rgbd_dataset_freiburg2_pioneer_360")
-# dataset_root = Path("dataset", "rgbd_dataset_freiburg3_structure_texture_near")
-depth_factor = 5000
+dataset_root = Path("datasets", "rgbd_dataset_freiburg1_desk")
+# dataset_root = Path("datasets", "rgbd_dataset_freiburg2_pioneer_360")
+# dataset_root = Path("datasets", "rgbd_dataset_freiburg3_structure_texture_near")
 
 
 def error(image_true, image_pred, mask):
