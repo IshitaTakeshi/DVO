@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from numpy.linalg import norm
 
@@ -95,8 +97,8 @@ class VisualOdometry(object):
         for level in levels:
             try:
                 G = self.estimate_motion_at(level, G)
-            except np.linalg.linalg.LinAlgError as e:
-                print(e)
+            except np.linalg.LinAlgError as e:
+                sys.stderr.write(str(e) + "\n")
                 return exp_se3(initial_pose)
         return G
 
