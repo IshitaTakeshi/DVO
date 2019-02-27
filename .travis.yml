@@ -9,8 +9,8 @@ addons:
       - "python3"
       - "python3-pip"
 before_install:
-  - sudo pip3 install --allow-all-external -U pip
+  - sudo pip3 install -U pip
 install:
-  - sudo pip3 install --allow-all-external -r requirements.txt
+  - sudo pip3 install -r requirements.txt
 script:
   - python3 -m pytest tests
