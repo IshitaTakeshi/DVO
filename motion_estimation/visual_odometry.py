@@ -103,6 +103,7 @@ class VisualOdometry(object):
         return G
 
     def camera_parameters_at(self, level):
+        """Change camera parameters as the image is resized"""
         focal_length = self.camera_parameters.focal_length
         offset = self.camera_parameters.offset
         ratio = level_to_ratio(level)
