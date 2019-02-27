@@ -3,6 +3,11 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+addons:
+  apt:
+    packages:
+      - "python3"
+      - "python3-pip"
 install:
   - sudo pip3 install -r requirements.txt
 script:
