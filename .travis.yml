@@ -1,3 +1,5 @@
+sudo: false  # disable sudo for speed up
+
 dist: xenial
 
 language: python
@@ -12,6 +14,10 @@ before_install:
 
 install:
   - pip install -e .
+  - pip install codecov pytest pytest-cov
 
 script:
-  - pytest tests
+  - pytest tests --cov=./
+
+after_success:
+  - codecov
