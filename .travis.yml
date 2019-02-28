@@ -6,4 +6,4 @@ before_install:
 install:
   - pip install --user -r requirements.txt
 script:
-  - python3 -m pytest tests
+  - python -m pytest tests
