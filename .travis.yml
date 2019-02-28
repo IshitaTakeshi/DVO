@@ -3,8 +3,7 @@ python:
   - "3.5"
 before_install:
   - sudo pip install -U pip
-  - sudo pip uninstall six  # seems six is already installed on Travis CI?
 install:
-  - sudo pip install -r requirements.txt
+  - pip install -r requirements.txt
 script:
   - python3 -m pytest tests
