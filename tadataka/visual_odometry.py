@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import numpy as np
 from numpy.linalg import norm
@@ -50,6 +51,11 @@ def calc_pose_update(camera_parameters,
     P = transform(G, S)  # to the t1 coordinates
     Q = projection(camera_parameters, P)
     mask = compute_mask(D0, Q).flatten()
+
+    if not np.any(mask):
+        # return xi = np.zeros(6), error = np.nan
+        # if there is no valid pixel
+        return np.zeros(6), np.nan
 
     P = P[mask]
     I0 = I0.flatten()[mask]  # you don't need to warp I0
@@ -129,6 +135,13 @@ class VisualOdometry(object):
                 camera_parameters,
                 I0, D0, I1, DX, DY, S, G
             )
+
+            if np.isnan(error):
+                warnings.warn(
+                    "There's no valid pixel at level {}. "\
+                    "Camera's pose change is too large ".format(level),
+                    RuntimeWarning
+                )
 
             if norm(dxi) < self.epsilon:
                 break
