@@ -76,7 +76,3 @@ def test_quaternion_to_rotation():
 
     assert_array_almost_equal(np.dot(R, R.T), np.eye(3))
     assert_array_almost_equal(np.linalg.det(R), 1)
-
-
-test_rotation_to_quaternion()
-test_quaternion_to_rotation()

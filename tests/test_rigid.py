@@ -96,12 +96,3 @@ def test_log_se3():
     run(np.array([1, 2, -3, 0, 0, 0]))
     run(np.array([1, -1, 2, np.pi / 2, 0, 0]))
     run(np.array([-1, 2, 1, 0, -np.pi / 2, np.pi / 4]))
-
-
-test_transform()
-test_tangent_so3()
-test_tangent_se3()
-test_exp_so3()
-test_exp_se3()
-test_log_so3()
-test_log_se3()

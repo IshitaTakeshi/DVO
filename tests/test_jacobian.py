@@ -29,6 +29,3 @@ def test_calc_projection_jacobian():
     ])
 
     assert_array_equal(J, GT)
-
-
-test_calc_projection_jacobian()

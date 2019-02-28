@@ -70,7 +70,3 @@ def test_compute_mask():
     mask = compute_mask(depth_map, pixel_coordinates)
 
     assert_array_equal(mask, GT)
-
-
-test_is_in_rage()
-test_compute_mask()

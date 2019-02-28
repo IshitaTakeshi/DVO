@@ -61,7 +61,3 @@ def test_projection():
         [np.nan, np.nan]
     ])
     assert_array_equal(P, GT)
-
-
-test_inverse_projection()
-test_projection()

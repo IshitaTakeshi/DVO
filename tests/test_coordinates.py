@@ -26,5 +26,3 @@ def test_compute_pixel_coordinates():
     assert_array_equal(compute_pixel_coordinates((height, width)), GT)
 
     compute_pixel_coordinates((height, width))
-
-test_compute_pixel_coordinates()
