@@ -14,7 +14,6 @@ setup(
         'scipy',
         'matplotlib',
         'scikit-image',
-        'tqdm',
-        'pytest'
+        'tqdm'
     ]
 )
