@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
-from motion_estimation.weights import tukey, median_absolute_deviation
+from tadataka.weights import tukey, median_absolute_deviation
 
 
 

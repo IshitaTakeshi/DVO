@@ -5,8 +5,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 from scipy.linalg import expm
 
-from motion_estimation.rigid import (exp_so3, exp_se3, log_so3, log_se3,
-                                     tangent_so3, tangent_se3, transform)
+from tadataka.rigid import (exp_so3, exp_se3, log_so3, log_se3,
+                            tangent_so3, tangent_se3, transform)
 
 
 def test_transform():

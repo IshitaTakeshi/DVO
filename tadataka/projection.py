@@ -1,8 +1,8 @@
 import numpy as np
 
-from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.rigid import transform, log_se3
-from motion_estimation.mask import compute_mask
+from tadataka.coordinates import compute_pixel_coordinates
+from tadataka.rigid import transform, log_se3
+from tadataka.mask import compute_mask
 
 from scipy.ndimage import map_coordinates
 

@@ -2,9 +2,8 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
-from motion_estimation.camera import CameraParameters
-from motion_estimation.jacobian import (calc_projection_jacobian,
-                                        calc_image_gradient)
+from tadataka.camera import CameraParameters
+from tadataka.jacobian import calc_projection_jacobian, calc_image_gradient
 
 
 def test_calc_projection_jacobian():

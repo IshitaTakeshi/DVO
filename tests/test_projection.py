@@ -1,9 +1,9 @@
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 
-from motion_estimation.camera import CameraParameters
-from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import inverse_projection, projection
+from tadataka.camera import CameraParameters
+from tadataka.coordinates import compute_pixel_coordinates
+from tadataka.projection import inverse_projection, projection
 
 
 def test_inverse_projection():

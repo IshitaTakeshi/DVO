@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from motion_estimation.quaternion import (
+from tadataka.quaternion import (
     quaternion_to_rotation, rotation_to_quaternion
 )
 

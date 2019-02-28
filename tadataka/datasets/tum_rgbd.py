@@ -5,7 +5,7 @@ from pathlib import Path
 from skimage.color import rgb2gray
 from skimage.io import imread
 
-from motion_estimation.quaternion import rotation_to_quaternion
+from tadataka.quaternion import rotation_to_quaternion
 
 
 Frame = namedtuple(

@@ -1,7 +1,7 @@
 from numpy.testing import assert_array_equal
 import numpy as np
 
-from motion_estimation.coordinates import compute_pixel_coordinates
+from tadataka.coordinates import compute_pixel_coordinates
 
 
 def test_compute_pixel_coordinates():

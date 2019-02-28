@@ -7,12 +7,11 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 import numpy as np
 from tqdm import tqdm
 
-from motion_estimation import VisualOdometry, CameraParameters
-from motion_estimation.rigid import exp_se3, log_se3
-from motion_estimation.projection import warp
-from motion_estimation.quaternion import quaternion_to_rotation
-from motion_estimation.datasets.tum_rgbd import (export_pose_sequence,
-                                                 TUMDataset)
+from tadataka import VisualOdometry, CameraParameters
+from tadataka.rigid import exp_se3, log_se3
+from tadataka.projection import warp
+from tadataka.quaternion import quaternion_to_rotation
+from tadataka.datasets.tum_rgbd import export_pose_sequence, TUMDataset
 
 from visualization.plot import plot
 

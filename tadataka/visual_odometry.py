@@ -6,15 +6,13 @@ from numpy.linalg import norm
 from skimage.io import imread
 from skimage.transform import resize
 
-from motion_estimation.camera import CameraParameters
-from motion_estimation.rigid import exp_se3, log_se3, transform
-from motion_estimation.coordinates import compute_pixel_coordinates
-from motion_estimation.projection import (inverse_projection, projection,
-                                          interpolation)
-from motion_estimation.mask import compute_mask
-from motion_estimation.jacobian import calc_image_gradient, calc_jacobian
-from motion_estimation.weights import (compute_weights_tukey,
-                                       compute_weights_student_t)
+from tadataka.camera import CameraParameters
+from tadataka.rigid import exp_se3, log_se3, transform
+from tadataka.coordinates import compute_pixel_coordinates
+from tadataka.projection import inverse_projection, projection, interpolation
+from tadataka.mask import compute_mask
+from tadataka.jacobian import calc_image_gradient, calc_jacobian
+from tadataka.weights import compute_weights_tukey, compute_weights_student_t
 
 
 n_pose_parameters = 6

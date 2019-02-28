@@ -1,5 +1,5 @@
 import numpy as np
-from motion_estimation.rigid import exp_so3, tangent_so3
+from tadataka.rigid import exp_so3, tangent_so3
 
 
 xi = np.array([1.8, -0.6, 0.9])

@@ -1,6 +1,6 @@
 import numpy as np
 
-from motion_estimation.utils import to_tuple_if_scalar
+from tadataka.utils import to_tuple_if_scalar
 
 
 class CameraParameters(object):

@@ -11,9 +11,9 @@ from skimage.io import imread
 from skimage.color import rgb2gray
 from scipy.ndimage import map_coordinates
 
-from motion_estimation import VisualOdometry, CameraParameters
-from motion_estimation.projection import reprojection, warp
-from motion_estimation.rigid import transformation_matrix
+from tadataka import VisualOdometry, CameraParameters
+from tadataka.projection import reprojection, warp
+from tadataka.rigid import transformation_matrix
 from visualization.plot import plot
 
 

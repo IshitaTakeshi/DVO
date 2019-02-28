@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from motion_estimation.mask import is_in_rage, compute_mask
+from tadataka.mask import is_in_rage, compute_mask
 
 
 def test_is_in_rage():
