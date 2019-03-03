@@ -30,3 +30,11 @@ def compute_weights_tukey(r, beta=4.6851, c=1.4826):
     # Equation 4.28 in the paper
     sigma_mad = c * median_absolute_deviation(r)
     return tukey(r / sigma_mad, beta)
+
+
+def compute_weights_huber(r, k=1.345):
+    weights = np.ones(r.shape)
+    abs_ = np.abs(r)
+    mask = abs_ > k
+    weights[mask] = k / abs_[mask]
+    return weights

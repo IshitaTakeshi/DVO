@@ -13,7 +13,8 @@ from tadataka.coordinates import compute_pixel_coordinates
 from tadataka.projection import inverse_projection, projection, interpolation
 from tadataka.mask import compute_mask
 from tadataka.jacobian import calc_image_gradient, calc_jacobian
-from tadataka.weights import compute_weights_tukey, compute_weights_student_t
+from tadataka.weights import (compute_weights_huber, compute_weights_student_t,
+                              compute_weights_tukey)
 
 
 n_pose_parameters = 6
@@ -69,6 +70,7 @@ def calc_pose_update(camera_parameters,
     r = -(I1 - I0)
     # weights = compute_weights_tukey(r)
     # weights = compute_weights_student_t(r)
+    weights = compute_weights_huber(r)
 
     xi, error = solve_linear_equation(J, r)
     return xi, error
