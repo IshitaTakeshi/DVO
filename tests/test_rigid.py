@@ -61,6 +61,7 @@ def test_exp_so3():
         )
 
     run([0, 0, 0])
+    run(np.array([2e-9, 0, 1e-9]))
     run(np.array([1, -1, 0]) * np.pi)
     run(np.array([-1 / 2, 1 / 4, -3 / 4])  * np.pi)
 
@@ -73,6 +74,7 @@ def test_exp_se3():
         )
 
     run(np.array([1, 2, -3, 0, 0, 0]))
+    run(np.array([1, 2, -3, 0, 0, 1e-9]))
     run(np.array([1, -1, 2, np.pi / 2, 0, 0]))
     run(np.array([-1, 2, 1, 0, -np.pi / 2, np.pi / 4]))
 

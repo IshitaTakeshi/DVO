@@ -3,7 +3,7 @@ from numpy.linalg import norm
 
 
 # threshold to switch to the approximated form
-epsilon = 1e-6
+EPSILON = 1e-8
 
 
 def tangent_so3(omega):
@@ -37,10 +37,11 @@ def exp_so3(omega):
 
     omega, theta = normalize(omega)
 
-    if theta < epsilon:  # becasue theta = norm(omega) >= 0
-        return I
-
     K = tangent_so3(omega)
+
+    if theta < EPSILON:  # becasue theta = norm(omega) >= 0
+        return I + K * theta + np.dot(K, K) * pow(theta, 2) / 2
+
     return I + np.sin(theta) * K + (1 - np.cos(theta)) * np.dot(K, K)
 
 
@@ -53,8 +54,8 @@ def exp_se3(xi):
     omega, theta = normalize(omega)
     K = tangent_so3(omega)
 
-    if theta < epsilon:  # since theta = norm(omega) >= 0
-        V = I
+    if theta < EPSILON:  # since theta = norm(omega) >= 0
+        V = I + K * theta / 2 + np.dot(K, K) * pow(theta, 2) / 6
     else:
         V = (I + (1 - np.cos(theta)) / theta * K +
              (theta - np.sin(theta)) / theta * np.dot(K, K))
