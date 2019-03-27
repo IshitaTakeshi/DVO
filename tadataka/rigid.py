@@ -28,7 +28,7 @@ def tangent_se3(xi):
 def normalize(omega):
     theta = norm(omega)
     if theta == 0:
-        return np.zeros(3), 0
+        return np.zeros(len(omega)), 0
     return omega / theta, theta
 
 
