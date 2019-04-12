@@ -4,12 +4,14 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+from skimage.color import rgb2gray
 import numpy as np
 from tqdm import tqdm
 
 from tadataka import VisualOdometry, CameraParameters
 from tadataka.rigid import exp_se3, log_se3
 from tadataka.projection import warp
+from tadataka.mapping import MapBuilder
 from tadataka.quaternion import quaternion_to_rotation
 from tadataka.datasets.tum_rgbd import export_pose_sequence, TUMDataset
 
@@ -61,7 +63,6 @@ def visualize_error_function(camera_parameters, I0, D0, I1, xi_pred):
     plt.show()
 
 
-
 def main():
     from visualization.plot import plot
     from visualization.pose import PoseSequenseVisualizer
@@ -74,26 +75,38 @@ def main():
     )
 
     dataset = TUMDataset(dataset_root, depth_factor=5000)
-
-    sequence_pred = {}
+    map_builder = MapBuilder(camera_parameters, )
 
     G = np.eye(4)
-    frame0 = dataset.load_gray(0)
+    sequence_pred = {}
+
+    frame0 = dataset.load_color(0)
+    map_builder.update(G, frame0.image, frame0.depth_map)
+
     sequence_pred[frame0.timestamp_depth] = G
 
-    for i in tqdm(range(1, dataset.size)):
-        frame1 = dataset.load_gray(i)
+    for i in tqdm(range(1, 3)): # dataset.size)):
+        frame1 = dataset.load_color(i)
 
+        # TODO not necessary to convert the color of the same image twice
+        # we need to create a better interface
         vo = VisualOdometry(camera_parameters,
-                            frame0.image, frame0.depth_map,
-                            frame1.image)
+                            rgb2gray(frame0.image), frame0.depth_map,
+                            rgb2gray(frame1.image))
         DG = vo.estimate_motion(n_coarse_to_fine=6)
 
         G = np.dot(G, np.linalg.inv(DG))
+        map_builder.update(G, frame1.image, frame1.depth_map)
+
         sequence_pred[frame1.timestamp_depth] = G
 
         frame0 = frame1
 
     export_pose_sequence("poses.txt", sequence_pred)
+    map_builder.show()
+
+    # TODO implement the following
+    # pointcloud = map_builder.export()
+    # export_pointcloud(pointcloud)
 
 main()
