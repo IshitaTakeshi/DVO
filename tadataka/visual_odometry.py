@@ -69,10 +69,9 @@ def calc_pose_update(camera_parameters,
 
     r = -(I1 - I0)
     # weights = compute_weights_tukey(r)
-    # weights = compute_weights_student_t(r)
-    weights = compute_weights_huber(r)
+    weights = compute_weights_student_t(r)
 
-    xi, error = solve_linear_equation(J, r)
+    xi, error = solve_linear_equation(J, r, weights)
     return xi, error
 
 
