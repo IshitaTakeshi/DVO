@@ -4,6 +4,7 @@ from pathlib import Path
 
 from skimage.color import rgb2gray
 from skimage.io import imread
+import numpy as np
 
 from tadataka.quaternion import rotation_to_quaternion
 
@@ -19,33 +20,60 @@ Frame = namedtuple(
 )
 
 
-def matrix_to_pose_parameters(G):
+def matrix_to_pose(G):
     R = G[0:3, 0:3]
     t = G[0:3, 3]
     q = rotation_to_quaternion(R)
-    return t, q
+    return np.concatenate((t, q))
 
 
-def export_pose_sequence(filename, pose_sequence):
-    # sort by timestamp
-    pose_sequence = sorted(pose_sequence.items(), key=lambda x: x[0])
-    with open(filename, "w") as f:
-        writer = csv.writer(f, delimiter=' ')
+def pose_to_matrix(pose):
+    x, y, z, w = pose[3:]  # because of the TUM dataset format
+    R = quaternion_to_rotation(np.array([w, x, y, z]))
+    t = pose[:3]
 
-        for timestamp, G in pose_sequence:
-            # G is the absolute pose w.r.t the world coordinate
-            t, q = matrix_to_pose_parameters(G)
-            qw, qx, qy, qz = q
+    G = np.empty((4, 4))
+    G[0:3, 0:3] = R
+    G[0:3, 3] = t
+    G[3, 0:3] = 0
+    G[3, 3] = 1
+    return G
 
-            writer.writerow([
-                timestamp, t[0], t[1], t[2], qx, qy, qz, qw
-            ])
+
+def load_pose_sequence(self, filename):
+    timestamps = []
+    poses = []
+    with open(str(path), "r") as f:
+        reader = csv.reader(f, delimiter=' ')
+
+        for row in reader:
+            timestamps.append(row[0])
+            poses.append([float(e) for e in row[1:]])
+    return PoseSequence(timestamps, poses)
+
+
+class PoseSequence(object):
+    def __init__(self, timestamps=[], poses=[]):
+        self.pose_sequence = {}
+        for timestamp, pose in zip(timestamps, poses):
+            self.pose_sequence[timestamp] = pose
+
+    def add_motion_matrix(self, timestamp, G):
+        self.pose_sequence[timestamp] = matrix_to_pose(G)
+
+    def save(self, filename):
+        pose_sequence = sorted(self.pose_sequence.items(), key=lambda x: x[0])
+        with open(filename, "w") as f:
+            writer = csv.writer(f, delimiter=' ')
+            for timestamp, pose in pose_sequence:
+                writer.writerow([timestamp, *pose])
 
 
 class TUMDataset(object):
     def __init__(self, dataset_root, depth_factor=5000):
         self.dataset_root = dataset_root
 
+        # note that each timestamp is represented in string
         timestamps_rgb, paths_rgb, timestamps_depth, paths_depth = self.init()
         self.timestamps_rgb = timestamps_rgb
         self.paths_rgb = paths_rgb
@@ -90,16 +118,3 @@ class TUMDataset(object):
         frame = self.load_color(index)
         # replace the image with the gray one
         return frame._replace(image=rgb2gray(frame.image))
-
-
-def pose_to_matrix(pose):
-    x, y, z, w = pose[3:]  # because of the TUM dataset format
-    R = quaternion_to_rotation(np.array([w, x, y, z]))
-    t = pose[:3]
-
-    G = np.empty((4, 4))
-    G[0:3, 0:3] = R
-    G[0:3, 3] = t
-    G[3, 0:3] = 0
-    G[3, 3] = 1
-    return G
