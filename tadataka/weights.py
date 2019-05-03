@@ -6,13 +6,16 @@ def compute_weights_student_t(r, nu=5, n_iter=10):
     # "Robust odometry estimation for RGB-D cameras."
     # Robotics and Automation (ICRA)
 
+    def weights(variance):
+        return (nu + 1) / (nu + s / variance)
+
     s = np.power(r, 2)
 
     variance = 1.0
     for i in range(n_iter):
-        variance = np.mean(s * (nu + 1) / (nu + s / variance))
+        variance = np.mean(s * weights(variance))
 
-    return np.sqrt((nu + 1) / (nu + s / variance))
+    return np.sqrt(weights(variance))
 
 
 def tukey(x, beta):
