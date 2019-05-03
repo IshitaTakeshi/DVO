@@ -13,7 +13,7 @@ from tadataka.rigid import exp_se3, log_se3
 from tadataka.projection import warp
 from tadataka.mapping import MapBuilder
 from tadataka.quaternion import quaternion_to_rotation
-from tadataka.datasets.tum_rgbd import export_pose_sequence, TUMDataset
+from tadataka.datasets.tum_rgbd import TUMDataset, PoseSequence
 
 from visualization.plot import plot
 
@@ -64,9 +64,6 @@ def visualize_error_function(camera_parameters, I0, D0, I1, xi_pred):
 
 
 def main():
-    from visualization.plot import plot
-    from visualization.pose import PoseSequenseVisualizer
-
     np.set_printoptions(suppress=True, precision=8, linewidth=1e8)
 
     camera_parameters = CameraParameters(
@@ -74,18 +71,15 @@ def main():
         offset=[319.5, 239.5]
     )
 
-    dataset = TUMDataset(dataset_root, depth_factor=5000)
-    map_builder = MapBuilder(camera_parameters, )
+    dataset = TUMDataset(dataset_root)
 
     G = np.eye(4)
-    sequence_pred = {}
-
     frame0 = dataset.load_color(0)
-    map_builder.update(G, frame0.image, frame0.depth_map)
 
-    sequence_pred[frame0.timestamp_depth] = G
+    sequence_pred = PoseSequence()
+    sequence_pred.add_motion_matrix(frame0.timestamp_depth, G)
 
-    for i in tqdm(range(1, 3)): # dataset.size)):
+    for i in tqdm(range(1, dataset.size)):
         frame1 = dataset.load_color(i)
 
         # TODO not necessary to convert the color of the same image twice
@@ -96,14 +90,12 @@ def main():
         DG = vo.estimate_motion(n_coarse_to_fine=6)
 
         G = np.dot(G, np.linalg.inv(DG))
-        map_builder.update(G, frame1.image, frame1.depth_map)
 
-        sequence_pred[frame1.timestamp_depth] = G
+        sequence_pred.add_motion_matrix(frame1.timestamp_depth, G)
 
         frame0 = frame1
 
-    export_pose_sequence("poses.txt", sequence_pred)
-    map_builder.show()
+    sequence_pred.save("poses.txt")
 
     # TODO implement the following
     # pointcloud = map_builder.export()
