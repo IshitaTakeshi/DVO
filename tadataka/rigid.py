@@ -104,6 +104,11 @@ def log_se3(G):
     return np.concatenate((v, omega * theta))
 
 
+def rigid_transformation(R, t, P):
+    P = np.dot(R, P.T)
+    return P.T + t
+
+
 def transform(G, P):
     """
 
@@ -116,5 +121,4 @@ def transform(G, P):
     :math:`RP + T`
     """
 
-    P = np.dot(G[0:3, 0:3], P.T)
-    return P.T + G[0:3, 3]
+    return rigid_transformation(G[0:3, 0:3], G[0:3, 3], P)
