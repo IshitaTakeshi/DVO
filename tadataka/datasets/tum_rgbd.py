@@ -40,11 +40,11 @@ def pose_to_matrix(pose):
     return G
 
 
-def load_pose_sequence(self, filename):
+def load_pose_sequence(path):
     timestamps = []
     poses = []
     with open(str(path), "r") as f:
-        reader = csv.reader(f, delimiter=' ')
+        reader = csv.reader(decomment(f), delimiter=' ')
 
         for row in reader:
             timestamps.append(row[0])
