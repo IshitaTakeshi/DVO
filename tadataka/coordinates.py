@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def homogeneous(P):
+    """
+    Args:
+        P (np.ndarray): Point array of shape (n_points, n_dims)
+    Returns:
+        Homogeneous representation of geven points
+    """
+    ones = np.ones((P.shape[0], 1))
+    return np.hstack((P, ones))
+
+
 def compute_pixel_coordinates(image_shape):
     """
 
