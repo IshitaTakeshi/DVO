@@ -66,6 +66,24 @@ class PoseSequence(object):
     def add(self, timestamp, G):
         self.pose_sequence[timestamp] = matrix_to_pose(G)
 
+    def get_closest(self, query_timestamp, max_time_diff=0.02):
+        timestamps = self.pose_sequence.keys()
+        timestamps = [float(t) for t in timestamps]
+        timestamps = np.array(timestamps)
+
+        query_timestamp = float(query_timestamp)
+
+        index = np.argmin(np.abs(timestamps - query_timestamp))
+
+        closest = timestamps[index]
+        print("query: {}  closest: {}".format(query_timestamp, closest))
+        if abs(closest - query_timestamp) > max_time_diff:
+            raise ValueError(
+                "Query time stamp is out of range of this sequence")
+
+        pose = self.pose_sequence[str(closest)]
+        return closest, pose_to_matrix(pose)
+
     def save(self, filename):
         pose_sequence = sort_by_key(self.pose_sequence.items())
         with open(filename, "w") as f:
