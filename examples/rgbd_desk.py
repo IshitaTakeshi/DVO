@@ -77,7 +77,7 @@ def main():
     frame0 = dataset.load_color(0)
 
     sequence_pred = PoseSequence()
-    sequence_pred.add_motion_matrix(frame0.timestamp_depth, G)
+    sequence_pred.add(frame0.timestamp_depth, G)
 
     for i in tqdm(range(1, dataset.size)):
         frame1 = dataset.load_color(i)
@@ -91,7 +91,7 @@ def main():
 
         G = np.dot(G, np.linalg.inv(DG))
 
-        sequence_pred.add_motion_matrix(frame1.timestamp_depth, G)
+        sequence_pred.add(frame1.timestamp_depth, G)
 
         frame0 = frame1
 

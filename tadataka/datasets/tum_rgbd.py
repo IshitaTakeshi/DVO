@@ -6,8 +6,8 @@ from skimage.color import rgb2gray
 from skimage.io import imread
 import numpy as np
 
-from tadataka.quaternion import rotation_to_quaternion
-
+from tadataka.quaternion import rotation_to_quaternion, quaternion_to_rotation
+from tadataka.datasets.fileio import decomment
 
 Frame = namedtuple(
     "Frame",
@@ -58,7 +58,7 @@ class PoseSequence(object):
         for timestamp, pose in zip(timestamps, poses):
             self.pose_sequence[timestamp] = pose
 
-    def add_motion_matrix(self, timestamp, G):
+    def add(self, timestamp, G):
         self.pose_sequence[timestamp] = matrix_to_pose(G)
 
     def save(self, filename):
