@@ -10,3 +10,12 @@ class CameraParameters(object):
 
         self.focal_length = np.array([fx, fy])
         self.offset = np.array([ox, oy])
+
+    # TODO add tests
+    @property
+    def matrix(self):
+        K = np.zeros((3, 3))
+        K[[0, 1], [0, 1]] = self.focal_length
+        K[0:2, 2] = self.offset
+        K[2, 2] = 1.0
+        return K
