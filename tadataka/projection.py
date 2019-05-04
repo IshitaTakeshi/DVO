@@ -20,7 +20,7 @@ def inverse_projection(camera_parameters, depth_map):
 
     Args:
         camera_parameters (CameraParameters): Camera intrinsic prameters
-        depth_map: Depth map
+        depth_map (np.ndarray): Depth map
     """
 
     offset = camera_parameters.offset
@@ -34,6 +34,12 @@ def inverse_projection(camera_parameters, depth_map):
 
 def projection(camera_parameters, P):
     """
+    Projection with a pinhole camera model
+
+    Args:
+        camera_parameters (CameraParameters): Camera parameters
+        P (np.ndarray): 3D points of shape (n_points, 3)
+
     :math:`\pi(P)` in the paper
 
     .. math::
