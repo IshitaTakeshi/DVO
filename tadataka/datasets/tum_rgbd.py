@@ -52,6 +52,11 @@ def load_pose_sequence(path):
     return PoseSequence(timestamps, poses)
 
 
+def sort_by_key(tuples):
+    return sorted(tuples, key=lambda x: x[0])
+
+
+# TODO add tests
 class PoseSequence(object):
     def __init__(self, timestamps=[], poses=[]):
         self.pose_sequence = {}
@@ -62,7 +67,7 @@ class PoseSequence(object):
         self.pose_sequence[timestamp] = matrix_to_pose(G)
 
     def save(self, filename):
-        pose_sequence = sorted(self.pose_sequence.items(), key=lambda x: x[0])
+        pose_sequence = sort_by_key(self.pose_sequence.items())
         with open(filename, "w") as f:
             writer = csv.writer(f, delimiter=' ')
             for timestamp, pose in pose_sequence:
