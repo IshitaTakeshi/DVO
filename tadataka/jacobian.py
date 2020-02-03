@@ -52,10 +52,5 @@ def calc_jacobian(camera_parameters, dx, dy, P):
 
 
 def calc_image_gradient(image):
-    """
-    Return image gradient `D` of shape (n_image_pixels, 2)
-    that :code:`D[y * width + x]` stores the gradient at (x, y)
-    """
-
     DY, DX = np.gradient(image)
     return DX, DY  # reverse the order
