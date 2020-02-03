@@ -1,10 +1,10 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from tadataka.mask import is_in_rage, compute_mask
+from tadataka.mask import is_in_range, compute_mask
 
 
-def test_is_in_rage():
+def test_is_in_range():
     P = np.array([
         #   x     y
         [-0.8, -0.2],
@@ -39,7 +39,7 @@ def test_is_in_rage():
         [12.0, 14.0],
     ])
 
-    mask = is_in_rage(image_shape, P)
+    mask = is_in_range(image_shape, P)
 
     assert_array_equal(P[mask], GT)
 

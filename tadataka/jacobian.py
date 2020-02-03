@@ -38,7 +38,7 @@ def calc_jacobian(camera_parameters, dx, dy, P):
 
     x, y, z = P[:, 0], P[:, 1], P[:, 2]
 
-    z2 = z * z  # element wize z * z
+    z2 = z * z  # element-wise z * z
     xy = x * y
 
     J = np.empty((P.shape[0], 6))
